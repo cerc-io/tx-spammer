@@ -1,5 +1,5 @@
 [eth]
-    txs = ["L2ContractPutCall", "L2ContractGetCall"]
+    txs = ["L2ContractDeployment", "L2ContractPutCall", "L2ContractGetCall"]
 
 [L2ContractDeployment]
     type = "L2"
@@ -11,8 +11,8 @@
     data = ""
     senderKeyPath = ""
     writeSenderPath = ""
-    frequency = 15
-    totalNumber = 1500
+    frequency = 1
+    totalNumber = 1
     chainID = 420
 
 [L2ContractPutCall]

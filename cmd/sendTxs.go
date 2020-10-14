@@ -16,36 +16,42 @@
 package cmd
 
 import (
-	"fmt"
+	"os"
+	"os/signal"
+	"sync"
 
 	"github.com/spf13/cobra"
+	"github.com/vulcanize/tx_spammer/pkg"
 )
 
 // sendTxsCmd represents the sendTxs command
 var sendTxsCmd = &cobra.Command{
 	Use:   "sendTxs",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "send large volumes of different tx types to different nodes",
+	Long: `Loads tx configuration from .toml config file
+Generates txs from configuration and sends them to designated node according to set frequency and number`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("sendTxs called")
+		sendTxs()
 	},
 }
 
+func sendTxs() {
+	params, err := tx_spammer.NewTxParams()
+	if err != nil {
+		logWithCommand.Fatal(err)
+	}
+	txSpammer := tx_spammer.NewTxSpammer(params)
+	wg := new(sync.WaitGroup)
+	quitChan := make(chan bool)
+	txSpammer.Loop(wg, quitChan)
+
+	shutdown := make(chan os.Signal)
+	signal.Notify(shutdown, os.Interrupt)
+	<-shutdown
+	close(quitChan)
+	wg.Wait()
+
+}
 func init() {
 	rootCmd.AddCommand(sendTxsCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// sendTxsCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// sendTxsCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

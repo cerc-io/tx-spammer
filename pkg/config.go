@@ -40,21 +40,21 @@ type TxParams struct {
 	Type TxType
 
 	// Universal tx fields
-	To *common.Address
+	To       *common.Address
 	GasLimit uint64
 	GasPrice *big.Int // nil if eip1559
-	Amount *big.Int
-	Data []byte
-	Sender common.Address
+	Amount   *big.Int
+	Data     []byte
+	Sender   common.Address
 
 	// Optimism-specific metadata fields
 	L1SenderAddr *common.Address
 	L1RollupTxId uint64
-	SigHashType uint8
+	SigHashType  uint8
 
 	// EIP1559-specific fields
 	GasPremium *big.Int
-	FeeCap *big.Int
+	FeeCap     *big.Int
 
 	// Sender key, if left the senderKeyPath is empty we generate a new key
 	SenderKey *ecdsa.PrivateKey
@@ -71,22 +71,22 @@ type TxParams struct {
 const (
 	ETH_TX_LIST = "ETH_TX_LIST"
 
-	typeSuffix = ".type"
-	httpPathSuffix = ".http"
-	toSuffix = ".to"
-	amountSuffix = ".amount"
-	gasLimitSuffix = ".gasLimit"
-	gasPriceSuffix = ".gasPrice"
-	gasPremiumSuffix = ".gasPremium"
-	feeCapSuffix = ".feeCap"
-	dataSuffix = ".data"
-	senderKeyPathSuffix = ".senderKeyPath"
+	typeSuffix            = ".type"
+	httpPathSuffix        = ".http"
+	toSuffix              = ".to"
+	amountSuffix          = ".amount"
+	gasLimitSuffix        = ".gasLimit"
+	gasPriceSuffix        = ".gasPrice"
+	gasPremiumSuffix      = ".gasPremium"
+	feeCapSuffix          = ".feeCap"
+	dataSuffix            = ".data"
+	senderKeyPathSuffix   = ".senderKeyPath"
 	writeSenderPathSuffix = ".writeSenderPath"
-	l1SenderSuffix = ".l1Sender"
-	l1RollupTxIdSuffix = ".l1RollupTxId"
-	sigHashTypeSuffix = ".sigHashType"
-	frequencySuffix = ".frequency"
-	totalNumberSuffix = ".totalNumber"
+	l1SenderSuffix        = ".l1Sender"
+	l1RollupTxIdSuffix    = ".l1RollupTxId"
+	sigHashTypeSuffix     = ".sigHashType"
+	frequencySuffix       = ".frequency"
+	totalNumberSuffix     = ".totalNumber"
 )
 
 // NewConfig returns a new tx spammer config
@@ -97,7 +97,7 @@ func NewTxParams() ([]TxParams, error) {
 	txParams := make([]TxParams, len(txs))
 	for i, txName := range txs {
 		// Get http client
-		httpPathStr := viper.GetString(txName+httpPathSuffix)
+		httpPathStr := viper.GetString(txName + httpPathSuffix)
 		if httpPathStr == "" {
 			return nil, fmt.Errorf("tx %s is missing an httpPath", txName)
 		}
@@ -110,7 +110,7 @@ func NewTxParams() ([]TxParams, error) {
 		}
 
 		// Get tx type
-		txTypeStr := viper.GetString(txName+typeSuffix)
+		txTypeStr := viper.GetString(txName + typeSuffix)
 		if txTypeStr == "" {
 			return nil, fmt.Errorf("need tx type for tx %s", txName)
 		}
@@ -120,20 +120,20 @@ func NewTxParams() ([]TxParams, error) {
 		}
 
 		// Get basic fields
-		toStr := viper.GetString(txName+toSuffix)
+		toStr := viper.GetString(txName + toSuffix)
 		var toAddr *common.Address
 		if toStr != "" {
 			to := common.HexToAddress(toStr)
 			toAddr = &to
 		}
-		amountStr := viper.GetString(txName+amountSuffix)
+		amountStr := viper.GetString(txName + amountSuffix)
 		amount := new(big.Int)
 		if amountStr != "" {
 			if _, ok := amount.SetString(amountStr, 10); !ok {
 				return nil, fmt.Errorf("amount (%s) for tx %s is not valid", amountStr, txName)
 			}
 		}
-		gasPriceStr := viper.GetString(txName+gasPriceSuffix)
+		gasPriceStr := viper.GetString(txName + gasPriceSuffix)
 		var gasPrice *big.Int
 		if gasPriceStr != "" {
 			gasPrice = new(big.Int)
@@ -141,15 +141,15 @@ func NewTxParams() ([]TxParams, error) {
 				return nil, fmt.Errorf("gasPrice (%s) for tx %s is not valid", gasPriceStr, txName)
 			}
 		}
-		gasLimit := viper.GetUint64(txName+gasLimitSuffix)
-		hex := viper.GetString(txName+dataSuffix)
+		gasLimit := viper.GetUint64(txName + gasLimitSuffix)
+		hex := viper.GetString(txName + dataSuffix)
 		data := make([]byte, 0)
 		if hex != "" {
 			data = common.Hex2Bytes(hex)
 		}
 
 		// Load or generate sender key
-		senderKeyPath := viper.GetString(txName+senderKeyPathSuffix)
+		senderKeyPath := viper.GetString(txName + senderKeyPathSuffix)
 		var key *ecdsa.PrivateKey
 		if senderKeyPath != "" {
 			key, err = crypto.LoadECDSA(senderKeyPath)
@@ -161,7 +161,7 @@ func NewTxParams() ([]TxParams, error) {
 			if err != nil {
 				return nil, fmt.Errorf("unable to generate ecdsa key for tx %s", txName)
 			}
-			writePath := viper.GetString(txName+writeSenderPathSuffix)
+			writePath := viper.GetString(txName + writeSenderPathSuffix)
 			if writePath != "" {
 				if err := crypto.SaveECDSA(writePath, key); err != nil {
 					return nil, err
@@ -170,25 +170,25 @@ func NewTxParams() ([]TxParams, error) {
 		}
 
 		// Attempt to load Optimism fields
-		l1SenderStr := viper.GetString(txName+l1SenderSuffix)
+		l1SenderStr := viper.GetString(txName + l1SenderSuffix)
 		var l1Sender *common.Address
 		if l1SenderStr != "" {
 			sender := common.HexToAddress(l1SenderStr)
 			l1Sender = &sender
 		}
 
-		l1RollupTxId := viper.GetUint64(txName+l1RollupTxIdSuffix)
-		sigHashType := viper.GetUint(txName+sigHashTypeSuffix)
+		l1RollupTxId := viper.GetUint64(txName + l1RollupTxIdSuffix)
+		sigHashType := viper.GetUint(txName + sigHashTypeSuffix)
 
 		// If gasPrice was empty, attempt to load EIP1559 fields
 		var feeCap, gasPremium *big.Int
 		if gasPrice == nil {
-			feeCapStr := viper.GetString(txName+feeCapSuffix)
-			gasPremiumString := viper.GetString(txName+gasPremiumSuffix)
+			feeCapStr := viper.GetString(txName + feeCapSuffix)
+			gasPremiumString := viper.GetString(txName + gasPremiumSuffix)
 			if feeCapStr == "" {
 				return nil, fmt.Errorf("tx %s is missing feeCapStr", txName)
 			}
-			if  gasPremiumString == "" {
+			if gasPremiumString == "" {
 				return nil, fmt.Errorf("tx %s is missing gasPremiumStr", txName)
 			}
 			feeCap = new(big.Int)
@@ -202,25 +202,25 @@ func NewTxParams() ([]TxParams, error) {
 		}
 
 		// Load the sending paramas
-		frequency := viper.GetDuration(txName+frequencySuffix)
-		totalNumber := viper.GetUint64(txName+totalNumberSuffix)
+		frequency := viper.GetDuration(txName + frequencySuffix)
+		totalNumber := viper.GetUint64(txName + totalNumberSuffix)
 
 		txParams[i] = TxParams{
-			Client: rpcClient,
-			Type: txType,
-			Name: txName,
-			To: toAddr,
-			Amount: amount,
-			GasLimit: gasLimit,
-			GasPrice: gasPrice,
-			GasPremium: gasPremium,
-			FeeCap: feeCap,
-			Data: data,
+			Client:       rpcClient,
+			Type:         txType,
+			Name:         txName,
+			To:           toAddr,
+			Amount:       amount,
+			GasLimit:     gasLimit,
+			GasPrice:     gasPrice,
+			GasPremium:   gasPremium,
+			FeeCap:       feeCap,
+			Data:         data,
 			L1SenderAddr: l1Sender,
 			L1RollupTxId: l1RollupTxId,
-			SigHashType: uint8(sigHashType),
-			Frequency: frequency,
-			TotalNumber: totalNumber,
+			SigHashType:  uint8(sigHashType),
+			Frequency:    frequency,
+			TotalNumber:  totalNumber,
 		}
 	}
 	return txParams, nil

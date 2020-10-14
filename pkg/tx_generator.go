@@ -20,10 +20,10 @@ import "github.com/ethereum/go-ethereum/rpc"
 
 // TxGenerator generates and signs txs
 type TxGenerator struct {
-	TxParams []TxParams
-	currentTx []byte
+	TxParams      []TxParams
+	currentTx     []byte
 	currentClient *rpc.Client
-	err error
+	err           error
 }
 
 func NewTxGenerator(params []TxParams) *TxGenerator {

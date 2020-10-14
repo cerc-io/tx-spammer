@@ -16,19 +16,39 @@
 
 package tx_spammer
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/sirupsen/logrus"
+)
 
 type Service interface {
-	Loop(wg *sync.WaitGroup) error
+	Loop(wg *sync.WaitGroup, quitChan <-chan bool)
 }
 
-type Tx struct {
-	Spammer *Sender
-	Generator *TxGenerator
-	Config *Config
+type Spammer struct {
+	Sender *TxSender
 }
 
-func NewTxSpammer(params []TxParams) (TxSpammer, error) {
+func NewTxSpammer(params []TxParams) Service {
+	return &Spammer{
+		Sender: NewTxSender(params),
+	}
+}
 
-	return &txSpammer{}, nil
+func (s *Spammer) Loop(wg *sync.WaitGroup, quitChan <-chan bool) {
+	forwardQuit := make(chan bool)
+	errChan := s.Sender.Send(forwardQuit)
+	go func() {
+		wg.Add(1)
+		defer wg.Done()
+		for {
+			select {
+			case err := <-errChan:
+				logrus.Error(err)
+			case forwardQuit <- <-quitChan:
+				return
+			}
+		}
+	}()
 }
