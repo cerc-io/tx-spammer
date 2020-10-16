@@ -18,40 +18,78 @@ package tx_spammer
 
 import (
 	"context"
+	"fmt"
+	"sync"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/sirupsen/logrus"
 )
 
+// TxSender type for
 type TxSender struct {
-	TxGen *TxGenerator
+	TxGen    *TxGenerator
+	TxParams []TxParams
 }
 
+// NewTxSender returns a new tx sender
 func NewTxSender(params []TxParams) *TxSender {
 	return &TxSender{
-		TxGen: NewTxGenerator(params),
+		TxGen:    NewTxGenerator(params),
+		TxParams: params,
 	}
 }
-func (s *TxSender) Send(quitChan <-chan bool) <-chan error {
+
+func (s *TxSender) Send(quitChan <-chan bool) (<-chan bool, <-chan error) {
+	// done channel to signal completion of all jobs
+	doneChan := make(chan bool)
+	// err channel returned to calling context
 	errChan := make(chan error)
-	go func() {
-		for s.TxGen.Next() {
-			select {
-			case <-quitChan:
+	// for each tx param set, spin up a goroutine to generate and send the tx at the specified delay and frequency
+	wg := new(sync.WaitGroup)
+	for _, txParams := range s.TxParams {
+		wg.Add(1)
+		go func(p TxParams) {
+			defer wg.Done()
+			// send the first tx after the delay
+			timer := time.NewTimer(p.Delay)
+			<-timer.C
+			if err := s.genAndSend(p); err != nil {
+				errChan <- fmt.Errorf("tx %s initial genAndSend error: %v", p.Name, err)
 				return
-			default:
 			}
-			if err := sendRawTransaction(s.TxGen.Current()); err != nil {
-				errChan <- err
+			// send any remaining ones at the provided frequency, also check for quit signal
+			ticker := time.NewTicker(p.Frequency)
+			for i := uint64(1); i < p.TotalNumber; i++ {
+				select {
+				case <-ticker.C:
+					if err := s.genAndSend(p); err != nil {
+						errChan <- fmt.Errorf("tx %s number %d genAndSend error: %v", p.Name, i, err)
+						return
+					}
+				case <-quitChan:
+					return
+				}
 			}
-		}
-		if s.TxGen.Error() != nil {
-			errChan <- s.TxGen.Error()
-		}
+		}(txParams)
+	}
+	go func() {
+		wg.Wait()
+		close(doneChan)
 	}()
-	return errChan
+	return doneChan, errChan
 }
 
-func sendRawTransaction(rpcClient *rpc.Client, txRlp []byte) error {
+func (s *TxSender) genAndSend(p TxParams) error {
+	tx, err := s.TxGen.GenerateTx(p)
+	if err != nil {
+		return err
+	}
+	return sendRawTransaction(p.Client, tx, p.Name)
+}
+
+func sendRawTransaction(rpcClient *rpc.Client, txRlp []byte, name string) error {
+	logrus.Infof("sending tx %s", name)
 	return rpcClient.CallContext(context.Background(), nil, "eth_sendRawTransaction", hexutil.Encode(txRlp))
 }

@@ -24,6 +24,8 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/spf13/viper"
@@ -39,6 +41,9 @@ type TxParams struct {
 	// Type of the tx
 	Type TxType
 
+	// Chain ID
+	ChainID uint64
+
 	// Universal tx fields
 	To       *common.Address
 	GasLimit uint64
@@ -49,23 +54,25 @@ type TxParams struct {
 
 	// Optimism-specific metadata fields
 	L1SenderAddr *common.Address
-	L1RollupTxId uint64
-	SigHashType  uint8
+	L1RollupTxId *hexutil.Uint64
+	SigHashType  types.SignatureHashType
+	QueueOrigin  types.QueueOrigin
 
 	// EIP1559-specific fields
 	GasPremium *big.Int
 	FeeCap     *big.Int
 
 	// Sender key, if left the senderKeyPath is empty we generate a new key
-	SenderKey *ecdsa.PrivateKey
+	SenderKey     *ecdsa.PrivateKey
+	StartingNonce uint64
 
 	// Sending params
 	// How often we send a tx of this type
 	Frequency time.Duration
 	// Total number of txs of this type to send
 	TotalNumber uint64
-	// Txs of different types will be sent according to their order (starting at 0)
-	Order uint64
+	// Delay before beginning to send
+	Delay time.Duration
 }
 
 const (
@@ -87,6 +94,10 @@ const (
 	sigHashTypeSuffix     = ".sigHashType"
 	frequencySuffix       = ".frequency"
 	totalNumberSuffix     = ".totalNumber"
+	delaySuffix           = ".delay"
+	startingNonceSuffix   = ".startingNonce"
+	queueOriginSuffix     = ".queueOrigin"
+	chainIDSuffix         = ".chainID"
 )
 
 // NewConfig returns a new tx spammer config
@@ -109,7 +120,7 @@ func NewTxParams() ([]TxParams, error) {
 			return nil, err
 		}
 
-		// Get tx type
+		// Get tx type and chain id
 		txTypeStr := viper.GetString(txName + typeSuffix)
 		if txTypeStr == "" {
 			return nil, fmt.Errorf("need tx type for tx %s", txName)
@@ -118,6 +129,7 @@ func NewTxParams() ([]TxParams, error) {
 		if err != nil {
 			return nil, err
 		}
+		chainID := viper.GetUint64(txName + chainIDSuffix)
 
 		// Get basic fields
 		toStr := viper.GetString(txName + toSuffix)
@@ -176,9 +188,10 @@ func NewTxParams() ([]TxParams, error) {
 			sender := common.HexToAddress(l1SenderStr)
 			l1Sender = &sender
 		}
-
 		l1RollupTxId := viper.GetUint64(txName + l1RollupTxIdSuffix)
+		l1rtid := (hexutil.Uint64)(l1RollupTxId)
 		sigHashType := viper.GetUint(txName + sigHashTypeSuffix)
+		queueOrigin := viper.GetInt64(txName + queueOriginSuffix)
 
 		// If gasPrice was empty, attempt to load EIP1559 fields
 		var feeCap, gasPremium *big.Int
@@ -201,26 +214,32 @@ func NewTxParams() ([]TxParams, error) {
 			}
 		}
 
-		// Load the sending paramas
+		// Load starting nonce and sending params
+		startingNonce := viper.GetUint64(txName + startingNonceSuffix)
 		frequency := viper.GetDuration(txName + frequencySuffix)
 		totalNumber := viper.GetUint64(txName + totalNumberSuffix)
+		delay := viper.GetDuration(txName + delaySuffix)
 
 		txParams[i] = TxParams{
-			Client:       rpcClient,
-			Type:         txType,
-			Name:         txName,
-			To:           toAddr,
-			Amount:       amount,
-			GasLimit:     gasLimit,
-			GasPrice:     gasPrice,
-			GasPremium:   gasPremium,
-			FeeCap:       feeCap,
-			Data:         data,
-			L1SenderAddr: l1Sender,
-			L1RollupTxId: l1RollupTxId,
-			SigHashType:  uint8(sigHashType),
-			Frequency:    frequency,
-			TotalNumber:  totalNumber,
+			Client:        rpcClient,
+			Type:          txType,
+			Name:          txName,
+			To:            toAddr,
+			Amount:        amount,
+			GasLimit:      gasLimit,
+			GasPrice:      gasPrice,
+			GasPremium:    gasPremium,
+			FeeCap:        feeCap,
+			Data:          data,
+			L1SenderAddr:  l1Sender,
+			L1RollupTxId:  &l1rtid,
+			SigHashType:   (types.SignatureHashType)(uint8(sigHashType)),
+			Frequency:     frequency,
+			TotalNumber:   totalNumber,
+			Delay:         delay,
+			StartingNonce: startingNonce,
+			QueueOrigin:   (types.QueueOrigin)(queueOrigin),
+			ChainID:       chainID,
 		}
 	}
 	return txParams, nil

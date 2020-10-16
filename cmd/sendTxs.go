@@ -27,9 +27,10 @@ import (
 // sendTxsCmd represents the sendTxs command
 var sendTxsCmd = &cobra.Command{
 	Use:   "sendTxs",
-	Short: "send large volumes of different tx types to different nodes",
+	Short: "Send large volumes of different tx types to different nodes for testing purposes",
 	Long: `Loads tx configuration from .toml config file
-Generates txs from configuration and sends them to designated node according to set frequency and number`,
+Generates txs from configuration and sends them to designated node according to set frequency and number
+Support standard, optimism L2, optimism L1 to L2, and EIP1559 transactions`,
 	Run: func(cmd *cobra.Command, args []string) {
 		sendTxs()
 	},
@@ -45,10 +46,12 @@ func sendTxs() {
 	quitChan := make(chan bool)
 	txSpammer.Loop(wg, quitChan)
 
-	shutdown := make(chan os.Signal)
-	signal.Notify(shutdown, os.Interrupt)
-	<-shutdown
-	close(quitChan)
+	go func() {
+		shutdown := make(chan os.Signal)
+		signal.Notify(shutdown, os.Interrupt)
+		<-shutdown
+		close(quitChan)
+	}()
 	wg.Wait()
 
 }

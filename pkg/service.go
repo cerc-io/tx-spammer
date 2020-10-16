@@ -38,15 +38,17 @@ func NewTxSpammer(params []TxParams) Service {
 
 func (s *Spammer) Loop(wg *sync.WaitGroup, quitChan <-chan bool) {
 	forwardQuit := make(chan bool)
-	errChan := s.Sender.Send(forwardQuit)
+	doneChan, errChan := s.Sender.Send(forwardQuit)
+	wg.Add(1)
 	go func() {
-		wg.Add(1)
 		defer wg.Done()
 		for {
 			select {
 			case err := <-errChan:
 				logrus.Error(err)
 			case forwardQuit <- <-quitChan:
+				return
+			case <-doneChan:
 				return
 			}
 		}

@@ -4,6 +4,7 @@
 [L2ContractDeployment]
     type = "L2"
     httpPath = ""
+    chainID = 420
     to = ""
     amount = "0"
     gasLimit = 0
@@ -13,11 +14,16 @@
     writeSenderPath = ""
     frequency = 1
     totalNumber = 1
-    chainID = 420
+    delay = 0
+    l1Sender = ""
+    l1RollupTxId = 0
+    sigHashType = 0
+    queueOrigin = 0
 
 [L2ContractPutCall]
     type = "L2"
     httpPath = ""
+    chainID = 420
     to = ""
     amount = "0"
     gasLimit = 0
@@ -26,26 +32,17 @@
     senderKeyPath = ""
     writeSenderPath = ""
     frequency = 15
-    totalNumber = 1500
-    chainID = 420
+    totalNumber = 1
+    delay = 60
+    l1Sender = ""
+    l1RollupTxId = 0
+    sigHashType = 0
+    queueOrigin = 0
 
 [L2ContractGetCall]
     type = "L2"
     httpPath = ""
-    to = ""
-    amount = "0"
-    gasLimit = 0
-    gasPrice = "0"
-    data = ""
-    senderKeyPath = ""
-    writeSenderPath = ""
-    frequency = 15
-    totalNumber = 1500
     chainID = 420
-
-[GethTx]
-    type = "geth"
-    httpPath = ""
     to = ""
     amount = "0"
     gasLimit = 0
@@ -53,39 +50,13 @@
     data = ""
     senderKeyPath = ""
     writeSenderPath = ""
-    frequency = 0
-    totalNumber = 0
-    chainID = 1
-
-[EIP1559]
-    type = "1559"
-    httpPath = ""
-    to = ""
-    amount = "0"
-    gasLimit = 0
-    gasPremium = "0"
-    feeCap = "0"
-    data = ""
-    senderKeyPath = ""
-    writeSenderPath = ""
-    frequency = 0
-    totalNumber = 0
-
-[L1ToL2]
-    type = "L2"
-    httpPath = ""
-    to = ""
-    amount = "0"
-    gasLimit = 0
-    gasPrice = "0"
-    data = ""
-    senderKeyPath = ""
-    writeSenderPath = ""
+    frequency = 60
+    totalNumber = 2
+    delay = 30
     l1Sender = ""
     l1RollupTxId = 0
     sigHashType = 0
-    frequency = 0
-    totalNumber = 0
+    queueOrigin = 0
 
 [log]
     level = "info"

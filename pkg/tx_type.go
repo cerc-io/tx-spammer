@@ -24,12 +24,27 @@ import (
 type TxType int
 
 const (
-	Unkown TxType = iota
+	Unsupported TxType = iota
 	Standard
 	OptimismL2
 	OptimismL1ToL2
 	EIP1559
 )
+
+func (tt TxType) String() string {
+	switch tt {
+	case Standard:
+		return "Standard"
+	case OptimismL2:
+		return "L2"
+	case OptimismL1ToL2:
+		return "L1toL2"
+	case EIP1559:
+		return "EIP1559"
+	default:
+		return "Unsupported"
+	}
+}
 
 // TxTypeFromString returns the tx enum type from provided string
 func TxTypeFromString(str string) (TxType, error) {
@@ -43,6 +58,6 @@ func TxTypeFromString(str string) (TxType, error) {
 	case "eip1559":
 		return EIP1559, nil
 	default:
-		return Unkown, fmt.Errorf("unsupported tx type: %s", str)
+		return Unsupported, fmt.Errorf("unsupported tx type: %s", str)
 	}
 }

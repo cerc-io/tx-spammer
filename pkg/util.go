@@ -21,31 +21,14 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/params"
 )
 
 // ChainConfig returns the appropriate ethereum chain config for the provided chain id
-func ChainConfig(chainID uint64) (*params.ChainConfig, error) {
-	switch chainID {
-	case 1:
-		return params.MainnetChainConfig, nil
-	case 3:
-		return params.TestnetChainConfig, nil // Ropsten
-	case 4:
-		return params.RinkebyChainConfig, nil
-	case 5, 420:
-		return params.GoerliChainConfig, nil
-	default:
-		return nil, fmt.Errorf("chain config for chainid %d not available", chainID)
-	}
-}
-
-// ChainConfig returns the appropriate ethereum chain config for the provided chain id
-func TxSigner(chainID uint64) (types.Signer, error) {
-	switch chainID {
-	case 1, 3, 4, 5:
+func TxSigner(kind TxType, chainID uint64) (types.Signer, error) {
+	switch kind {
+	case Standard, EIP1559:
 		return types.NewEIP155Signer(new(big.Int).SetUint64(chainID)), nil
-	case 420:
+	case OptimismL2, OptimismL1ToL2:
 		return types.NewOVMSigner(new(big.Int).SetUint64(chainID)), nil
 	default:
 		return nil, fmt.Errorf("chain config for chainid %d not available", chainID)
