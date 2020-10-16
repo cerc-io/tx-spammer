@@ -1,5 +1,6 @@
 [eth]
-    txs = ["L2ContractDeployment", "L2ContractPutCall", "L2ContractGetCall"]
+    txs = ["L2ContractDeployment", "L2ContractPutCall", "L2ContractGetCall"] # $ETH_TX_LIST
+    addrLogPath = "" # ETH_ADDR_LOG
 
 [L2ContractDeployment]
     type = "L2"
@@ -12,6 +13,7 @@
     data = ""
     senderKeyPath = ""
     writeSenderPath = ""
+    writeDeploymentAddrPath = ""
     frequency = 1
     totalNumber = 1
     delay = 0

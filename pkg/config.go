@@ -20,6 +20,7 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"math/big"
+	"os"
 	"strings"
 	"time"
 
@@ -31,6 +32,7 @@ import (
 	"github.com/spf13/viper"
 )
 
+// TxParams holds the parameters for a given transaction
 type TxParams struct {
 	// Name of this tx in the .toml file
 	Name string
@@ -63,8 +65,9 @@ type TxParams struct {
 	FeeCap     *big.Int
 
 	// Sender key, if left the senderKeyPath is empty we generate a new key
-	SenderKey     *ecdsa.PrivateKey
-	StartingNonce uint64
+	SenderKey             *ecdsa.PrivateKey
+	StartingNonce         uint64
+	ContractAddrWritePath string
 
 	// Sending params
 	// How often we send a tx of this type
@@ -76,7 +79,11 @@ type TxParams struct {
 }
 
 const (
-	ETH_TX_LIST = "ETH_TX_LIST"
+	ETH_TX_LIST  = "ETH_TX_LIST"
+	ETH_ADDR_LOG = "ETH_ADDR_LOG"
+
+	defaultGenKeyWritePathPrefix = "./accounts/keys/"
+	defaultAddrLogPath           = "./accounts/addresses/accounts"
 
 	typeSuffix            = ".type"
 	httpPathSuffix        = ".http"
@@ -98,12 +105,15 @@ const (
 	startingNonceSuffix   = ".startingNonce"
 	queueOriginSuffix     = ".queueOrigin"
 	chainIDSuffix         = ".chainID"
+	contractWriteSuffix   = ".writeDeploymentAddrPath"
 )
 
 // NewConfig returns a new tx spammer config
 func NewTxParams() ([]TxParams, error) {
 	viper.BindEnv("eth.txs", ETH_TX_LIST)
+	viper.BindEnv("eth.addrLogPath", ETH_ADDR_LOG)
 
+	addrLogPath := viper.GetString("eth.addrLogPath")
 	txs := viper.GetStringSlice("eth.txs")
 	txParams := make([]TxParams, len(txs))
 	for i, txName := range txs {
@@ -129,7 +139,6 @@ func NewTxParams() ([]TxParams, error) {
 		if err != nil {
 			return nil, err
 		}
-		chainID := viper.GetUint64(txName + chainIDSuffix)
 
 		// Get basic fields
 		toStr := viper.GetString(txName + toSuffix)
@@ -174,11 +183,16 @@ func NewTxParams() ([]TxParams, error) {
 				return nil, fmt.Errorf("unable to generate ecdsa key for tx %s", txName)
 			}
 			writePath := viper.GetString(txName + writeSenderPathSuffix)
-			if writePath != "" {
-				if err := crypto.SaveECDSA(writePath, key); err != nil {
-					return nil, err
-				}
+			if writePath == "" {
+				writePath = defaultGenKeyWritePathPrefix + txName
 			}
+			if err := crypto.SaveECDSA(writePath, key); err != nil {
+				return nil, err
+			}
+		}
+		sender := crypto.PubkeyToAddress(key.PublicKey)
+		if err := writeSenderAddr(addrLogPath, sender); err != nil {
+			return nil, err
 		}
 
 		// Attempt to load Optimism fields
@@ -214,33 +228,44 @@ func NewTxParams() ([]TxParams, error) {
 			}
 		}
 
-		// Load starting nonce and sending params
-		startingNonce := viper.GetUint64(txName + startingNonceSuffix)
-		frequency := viper.GetDuration(txName + frequencySuffix)
-		totalNumber := viper.GetUint64(txName + totalNumberSuffix)
-		delay := viper.GetDuration(txName + delaySuffix)
-
 		txParams[i] = TxParams{
-			Client:        rpcClient,
-			Type:          txType,
-			Name:          txName,
-			To:            toAddr,
-			Amount:        amount,
-			GasLimit:      gasLimit,
-			GasPrice:      gasPrice,
-			GasPremium:    gasPremium,
-			FeeCap:        feeCap,
-			Data:          data,
-			L1SenderAddr:  l1Sender,
-			L1RollupTxId:  &l1rtid,
-			SigHashType:   (types.SignatureHashType)(uint8(sigHashType)),
-			Frequency:     frequency,
-			TotalNumber:   totalNumber,
-			Delay:         delay,
-			StartingNonce: startingNonce,
-			QueueOrigin:   (types.QueueOrigin)(queueOrigin),
-			ChainID:       chainID,
+			Name:                  txName,
+			Client:                rpcClient,
+			Type:                  txType,
+			ChainID:               viper.GetUint64(txName + chainIDSuffix),
+			To:                    toAddr,
+			GasLimit:              gasLimit,
+			GasPrice:              gasPrice,
+			Amount:                amount,
+			Data:                  data,
+			Sender:                sender,
+			L1SenderAddr:          l1Sender,
+			L1RollupTxId:          &l1rtid,
+			SigHashType:           (types.SignatureHashType)(uint8(sigHashType)),
+			QueueOrigin:           (types.QueueOrigin)(queueOrigin),
+			GasPremium:            gasPremium,
+			FeeCap:                feeCap,
+			SenderKey:             key,
+			StartingNonce:         viper.GetUint64(txName + startingNonceSuffix),
+			ContractAddrWritePath: viper.GetString(txName + contractWriteSuffix),
+			Frequency:             viper.GetDuration(txName + frequencySuffix),
+			TotalNumber:           viper.GetUint64(txName + totalNumberSuffix),
+			Delay:                 viper.GetDuration(txName + delaySuffix),
 		}
 	}
 	return txParams, nil
+}
+
+func writeSenderAddr(filePath string, senderAddr common.Address) error {
+	if filePath == "" {
+		filePath = defaultAddrLogPath
+	}
+	f, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	if _, err := f.WriteString(senderAddr.Hex() + "\n"); err != nil {
+		return err
+	}
+	return f.Close()
 }

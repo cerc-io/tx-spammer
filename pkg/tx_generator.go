@@ -18,24 +18,31 @@ package tx_spammer
 
 import (
 	"fmt"
+	"os"
+	"sync/atomic"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
+)
+
+const (
+	defaultDeploymentAddrLogPathPrefix = "./accounts/addresses/"
 )
 
 // TxGenerator generates and signs txs
 type TxGenerator struct {
 	// keep track of account nonces locally so we aren't spamming to determine the nonce
 	// this assumes these accounts are not sending txs outside this process
-	nonces map[common.Address]uint64
+	nonces map[common.Address]*uint64
 }
 
 // NewTxGenerator creates a new tx generator
 func NewTxGenerator(params []TxParams) *TxGenerator {
-	nonces := make(map[common.Address]uint64)
+	nonces := make(map[common.Address]*uint64)
 	for _, p := range params {
-		nonces[p.Sender] = p.StartingNonce
+		nonces[p.Sender] = &p.StartingNonce
 	}
 	return &TxGenerator{
 		nonces: nonces,
@@ -57,10 +64,14 @@ func (tg TxGenerator) GenerateTx(params TxParams) ([]byte, error) {
 }
 
 func (gen TxGenerator) gen(params TxParams) ([]byte, error) {
-	nonce := gen.nonces[params.Sender]
+	nonce := atomic.AddUint64(gen.nonces[params.Sender], 1)
 	tx := new(types.Transaction)
 	if params.To == nil {
 		tx = types.NewContractCreation(nonce, params.Amount, params.GasLimit, params.GasPrice, params.Data, params.L1SenderAddr, params.L1RollupTxId, params.QueueOrigin)
+		if err := writeContractAddr(params.ContractAddrWritePath, params.Sender, nonce); err != nil {
+			return nil, err
+		}
+
 	} else {
 		tx = types.NewTransaction(nonce, *params.To, params.Amount, params.GasLimit, params.GasPrice, params.Data, params.L1SenderAddr, params.L1RollupTxId, params.QueueOrigin, params.SigHashType)
 	}
@@ -76,11 +87,25 @@ func (gen TxGenerator) gen(params TxParams) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	gen.nonces[params.Sender]++
 	return txRlp, nil
 }
 
 func (gen TxGenerator) gen1559(params TxParams) ([]byte, error) {
 	// TODO: support EIP1559; new to make a new major version, vendor it, or release with different pkg name so that we can import both optimism and eip1559 geth
 	return nil, fmt.Errorf("1559 support not yet available")
+}
+
+func writeContractAddr(filePath string, senderAddr common.Address, nonce uint64) error {
+	if filePath == "" {
+		filePath = defaultDeploymentAddrLogPathPrefix + senderAddr.Hex()
+	}
+	contractAddr := crypto.CreateAddress(senderAddr, nonce)
+	f, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	if _, err := f.WriteString(contractAddr.Hex() + "\n"); err != nil {
+		return err
+	}
+	return f.Close()
 }
