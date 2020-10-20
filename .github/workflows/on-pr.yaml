@@ -7,6 +7,7 @@ jobs:
     name: Run docker build
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Run docker build
-      run: make docker-build
+      - uses: actions/checkout@v2
+      - name: Run docker build
+        run: make docker-build
+
