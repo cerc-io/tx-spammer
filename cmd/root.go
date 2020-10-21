@@ -28,6 +28,7 @@ import (
 
 var (
 	cfgFile        string
+	subCommand     string
 	logWithCommand log.Entry
 )
 
@@ -87,10 +88,12 @@ func init() {
 
 	rootCmd.PersistentFlags().String("log-level", log.InfoLevel.String(), "Log level (trace, debug, info, warn, error, fatal, panic")
 	rootCmd.PersistentFlags().String("log-file", "", "file path for logging")
+	rootCmd.PersistentFlags().String("key-path", "", "path to public key to derive contract address from")
 
 	// and their .toml bindings
 	viper.BindPFlag("log.file", rootCmd.PersistentFlags().Lookup("log-file"))
 	viper.BindPFlag("log.level", rootCmd.PersistentFlags().Lookup("log-level"))
+	viper.BindPFlag("keyGen.path", rootCmd.PersistentFlags().Lookup("key-path"))
 }
 
 func initConfig() {
