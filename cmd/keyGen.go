@@ -17,6 +17,7 @@ package cmd
 
 import (
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -28,6 +29,8 @@ var keyGenCmd = &cobra.Command{
 	Long: `Generates a new ethereum key pair for each file path provided
 These keys should only be used for testing purposes`,
 	Run: func(cmd *cobra.Command, args []string) {
+		subCommand = cmd.CalledAs()
+		logWithCommand = *logrus.WithField("SubCommand", subCommand)
 		keyGen()
 	},
 }
@@ -49,6 +52,6 @@ func keyGen() {
 func init() {
 	rootCmd.AddCommand(keyGenCmd)
 
-	keyGenCmd.PersistentFlags().StringArray("write-paths", nil, "file paths to write keys to; generate a key for each path provided")
+	keyGenCmd.PersistentFlags().StringSlice("write-paths", nil, "file paths to write keys to; generate a key for each path provided")
 	viper.BindPFlag("keyGen.paths", keyGenCmd.PersistentFlags().Lookup("write-paths"))
 }

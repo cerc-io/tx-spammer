@@ -18,24 +18,27 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-// keyGenCmd represents the keyGen command
+// deriveContractCmd represents the deriveContract command
 var deriveContractCmd = &cobra.Command{
 	Use:   "deriveContract",
 	Short: "Derive contract address",
 	Long:  `Derive the contract address created from an pubkey/address and nonce`,
 	Run: func(cmd *cobra.Command, args []string) {
+		subCommand = cmd.CalledAs()
+		logWithCommand = *logrus.WithField("SubCommand", subCommand)
 		deriveContract()
 	},
 }
 
 func deriveContract() {
-	// and their .toml config bindings
 	nonce := viper.GetUint64("keyGen.nonce")
 	addrStr := viper.GetString("keyGen.address")
 	var addr common.Address
@@ -54,13 +57,11 @@ func deriveContract() {
 }
 
 func init() {
-	rootCmd.AddCommand(keyGenCmd)
+	rootCmd.AddCommand(deriveContractCmd)
 
-	keyGenCmd.PersistentFlags().Uint64("nonce", 0, "nonce to derive contract address from")
-	keyGenCmd.PersistentFlags().String("key-path", "", "path to public key to derive contract address from")
-	keyGenCmd.PersistentFlags().String("address", "", "address to derive contract address from")
+	deriveContractCmd.PersistentFlags().Uint64("nonce", 0, "nonce to derive contract address from")
+	deriveContractCmd.PersistentFlags().String("address", "", "address to derive contract address from")
 
-	viper.BindPFlag("keyGen.nonce", keyGenCmd.PersistentFlags().Lookup("nonce"))
-	viper.BindPFlag("keyGen.path", keyGenCmd.PersistentFlags().Lookup("key-path"))
-	viper.BindPFlag("keyGen.address", keyGenCmd.PersistentFlags().Lookup("address"))
+	viper.BindPFlag("keyGen.nonce", deriveContractCmd.PersistentFlags().Lookup("nonce"))
+	viper.BindPFlag("keyGen.address", deriveContractCmd.PersistentFlags().Lookup("address"))
 }

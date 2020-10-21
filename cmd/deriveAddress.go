@@ -16,49 +16,39 @@
 package cmd
 
 import (
-	"os"
-	"os/signal"
-	"sync"
+	"fmt"
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/spf13/cobra"
-	"github.com/vulcanize/tx_spammer/pkg"
+	"github.com/spf13/viper"
 )
 
-// sendTxsCmd represents the sendTxs command
-var sendTxsCmd = &cobra.Command{
-	Use:   "sendTxs",
-	Short: "Send large volumes of different tx types to different nodes for testing purposes",
-	Long: `Loads tx configuration from .toml config file
-Generates txs from configuration and sends them to designated node according to set frequency and number
-Support standard, optimism L2, optimism L1 to L2, and EIP1559 transactions`,
+// deriveAddressCmd represents the deriveAddress command
+var deriveAddressCmd = &cobra.Command{
+	Use:   "deriveAddress",
+	Short: "Derive address from key pair",
+	Long:  `Derive the account address from an pubkey/address`,
 	Run: func(cmd *cobra.Command, args []string) {
 		subCommand = cmd.CalledAs()
 		logWithCommand = *logrus.WithField("SubCommand", subCommand)
-		sendTxs()
+		deriveAddress()
 	},
 }
 
-func sendTxs() {
-	params, err := tx_spammer.NewTxParams()
+func deriveAddress() {
+	var addr common.Address
+	keyPath := viper.GetString("keyGen.path")
+	key, err := crypto.LoadECDSA(keyPath)
 	if err != nil {
 		logWithCommand.Fatal(err)
 	}
-	txSpammer := tx_spammer.NewTxSpammer(params)
-	wg := new(sync.WaitGroup)
-	quitChan := make(chan bool)
-	txSpammer.Loop(wg, quitChan)
-
-	go func() {
-		shutdown := make(chan os.Signal)
-		signal.Notify(shutdown, os.Interrupt)
-		<-shutdown
-		close(quitChan)
-	}()
-	wg.Wait()
-
+	addr = crypto.PubkeyToAddress(key.PublicKey)
+	fmt.Println(addr.Hex())
 }
+
 func init() {
-	rootCmd.AddCommand(sendTxsCmd)
+	rootCmd.AddCommand(deriveAddressCmd)
 }
