@@ -14,10 +14,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package tx_spammer
+package manual
 
 import (
 	"fmt"
+	"github.com/vulcanize/tx_spammer/pkg/shared"
 	"os"
 	"sync/atomic"
 
@@ -53,9 +54,9 @@ func NewTxGenerator(params []TxParams) *TxGenerator {
 func (tg TxGenerator) GenerateTx(params TxParams) ([]byte, error) {
 	tx := make([]byte, 0)
 	switch params.Type {
-	case Standard, OptimismL1ToL2, OptimismL2:
+	case shared.Standard, shared.OptimismL1ToL2, shared.OptimismL2:
 		return tg.gen(params)
-	case EIP1559:
+	case shared.EIP1559:
 		return tg.gen1559(params)
 	default:
 		return nil, fmt.Errorf("unsupported tx type: %s", params.Type.String())
@@ -75,7 +76,7 @@ func (gen TxGenerator) gen(params TxParams) ([]byte, error) {
 	} else {
 		tx = types.NewTransaction(nonce, *params.To, params.Amount, params.GasLimit, params.GasPrice, params.Data, params.L1SenderAddr, params.L1RollupTxId, params.QueueOrigin, params.SigHashType)
 	}
-	signer, err := TxSigner(params.Type, params.ChainID)
+	signer, err := shared.TxSigner(params.Type, params.ChainID)
 	if err != nil {
 		return nil, err
 	}
