@@ -38,73 +38,9 @@ import (
 	"github.com/vulcanize/tx_spammer/pkg/shared"
 )
 
-const (
-	// toml bindings
-	ethKeyDirPath   = "eth.keyDirPath"
-	ethAddrFilePath = "eth.addrFilePath"
-	ethHttpPath     = "eth.httpPath"
-	ethChainID      = "eth.chainID"
-	ethType         = "eth.type"
-
-	ethDeploymentNumber   = "deployment.number"
-	ethDeploymentData     = "deployment.hexData"
-	ethDeploymentGasPrice = "deployment.gasPrice"
-	ethDeploymentGasLimit = "deployment.gasLimit"
-
-	ethOptimismL1Sender    = "optimism.l1Sender"
-	ethOptimismRollupTxID  = "optimism.l1RollupTxId"
-	ethOptimismSigHashType = "optimism.sigHashType"
-	ethOptimismQueueOrigin = "optimism.queueOrigin"
-
-	ethCallFrequency     = "contractSpammer.frequency"
-	ethCallTotalNumber   = "contractSpammer.totalNumber"
-	ethCallABIPath       = "contractSpammer.abiPath"
-	ethCallMethodName    = "contractSpammer.methodName"
-	ethCallPositionStart = "contractSpammer.positionStart"
-	ethCallPositionEnd   = "contractSpammer.positionEnd"
-	ethCallStorageValue  = "contractSpammer.storageValue"
-	ethCallGasLimit      = "contractSpammer.gasLimit"
-	ethCallGasPrice      = "contractSpammer.gasPrice"
-
-	ethSendFrequency   = "sendSpammer.frequency"
-	ethSendTotalNumber = "sendSpammer.totalNumber"
-	ethSendAmount      = "sendSpammer.amount"
-	ethSendGasLimit    = "sendSpammer.gasLimit"
-	ethSendGasPrice    = "sendSpammer.gasPrice"
-
-	// env variables
-	ETH_KEY_DIR_PATH  = "ETH_KEY_DIR_PATH"
-	ETH_ADDR_DIR_PATH = "ETH_ADDR_DIR_PATH"
-	ETH_HTTP_PATH     = "ETH_HTTP_PATH"
-	ETH_CHAIN_ID      = "ETH_CHAIN_ID"
-	ETH_TX_TYPE       = "ETH_TX_TYPE"
-
-	ETH_DEPLOYMENT_NUMBER    = "ETH_DEPLOYMENT_NUMBER"
-	ETH_DEPLOYMENT_HEX_DATA  = "ETH_DEPLOYMENT_HEX_DATA"
-	ETH_DEPLOYMENT_GAS_LIMIT = "ETH_DEPLOYMENT_GAS_LIMIT"
-	ETH_DEPLOYMENT_GAS_PRICE = "ETH_DEPLOYMENT_GAS_PRICE"
-
-	ETH_OPTIMISM_L1_SENDER     = "ETH_OPTIMISM_L1_SENDER"
-	ETH_OPTIMISM_ROLLUP_TX_ID  = "ETH_OPTIMISM_ROLLUP_TX_ID"
-	ETH_OPTIMISM_SIG_HASH_TYPE = "ETH_OPTIMISM_SIG_HASH_TYPE"
-	ETH_OPTIMISM_QUEUE_ORIGIN  = "ETH_OPTIMISM_QUEUE_ORIGIN"
-
-	ETH_CALL_FREQ           = "ETH_CALL_FREQ"
-	ETH_CALL_TOTAL_NUMBER   = "ETH_CALL_TOTAL_NUMBER"
-	ETH_CALL_ABI_PATH       = "ETH_CALL_ABI_PATH"
-	ETH_CALL_METHOD_NAME    = "ETH_CALL_METHOD_NAME"
-	ETH_CALL_POSITION_START = "ETH_CALL_POSITION_START"
-	ETH_CALL_POSITION_END   = "ETH_CALL_POSITION_END"
-	ETH_CALL_STORAGE_VALUE  = "ETH_CALL_STORAGE_VALUE"
-	ETH_CALL_GAS_LIMIT      = "ETH_CALL_GAS_LIMIT"
-	ETH_CALL_GAS_PRICE      = "ETH_CALL_GAS_PRICE"
-
-	ETH_SEND_FREQ         = "ETH_SEND_FREQ"
-	ETH_SEND_TOTAL_NUMBER = "ETH_SEND_TOTAL_NUMBER"
-	ETH_SEND_AMOUNT       = "ETH_SEND_AMOUNT"
-	ETH_SEND_GAS_LIMIT    = "ETH_SEND_GAS_LIMIT"
-	ETH_SEND_GAS_PRICE    = "ETH_SEND_GAS_PRICE"
-)
+func init() {
+	bindEnv()
+}
 
 // Config holds all the parameters for the auto tx spammer
 type Config struct {
@@ -113,21 +49,16 @@ type Config struct {
 
 	// Key pairs for the accounts we will use to deploy contracts and send txs
 	SenderKeys []*ecdsa.PrivateKey
-
-	// Addresses to send eth transfer txs to
-	DestinationAddrs []common.Address
+	SenderAddrs []common.Address
 
 	// Type of the txs we are working with
 	Type shared.TxType
 
-	// Chain ID for the chain we are working with
-	ChainID uint64
+	// Tx signer for the chain we are working with
+	Signer types.Signer
 
-	// Optimism-specific metadata fields (optional)
-	L1SenderAddr *common.Address
-	L1RollupTxId *hexutil.Uint64
-	SigHashType  types.SignatureHashType
-	QueueOrigin  types.QueueOrigin
+	// Configuration for Optimism L2
+	OptimismConfig *OptimismConfig
 
 	// Configuration for the initial contract deployment
 	DeploymentConfig *DeploymentConfig
@@ -137,6 +68,17 @@ type Config struct {
 
 	// Configuration for the eth transfer txs
 	SendConfig *SendConfig
+
+	// Configuration for EIP1559
+	EIP1559Config *EIP1559Config
+}
+
+// OptimismConfig holds the tx paramaters specific to Optimism L2
+type OptimismConfig struct {
+	L1SenderAddr *common.Address
+	L1RollupTxId *hexutil.Uint64
+	SigHashType  types.SignatureHashType
+	QueueOrigin  types.QueueOrigin
 }
 
 // DeploymentConfig holds the parameters for the contract deployment contracts
@@ -152,6 +94,7 @@ type DeploymentConfig struct {
 type CallConfig struct {
 	GasLimit      uint64
 	GasPrice      *big.Int
+
 	MethodName    string
 	ABI           abi.ABI
 	PositionStart uint64
@@ -168,22 +111,17 @@ type SendConfig struct {
 	GasPrice *big.Int
 	Amount   *big.Int
 
+	DestinationAddresses []common.Address
 	Frequency time.Duration
 	Number    uint64
 }
 
+// todo: EIP1559Config
+type EIP1559Config struct {
+
+}
+
 func NewConfig() (*Config, error) {
-	viper.BindEnv(ethKeyDirPath, ETH_KEY_DIR_PATH)
-	viper.BindEnv(ethAddrFilePath, ETH_ADDR_DIR_PATH)
-	viper.BindEnv(ethHttpPath, ETH_HTTP_PATH)
-	viper.BindEnv(ethType, ETH_TX_TYPE)
-	viper.BindEnv(ethChainID, ETH_CHAIN_ID)
-
-	viper.BindEnv(ethOptimismL1Sender, ETH_OPTIMISM_L1_SENDER)
-	viper.BindEnv(ethOptimismQueueOrigin, ETH_OPTIMISM_QUEUE_ORIGIN)
-	viper.BindEnv(ethOptimismRollupTxID, ETH_OPTIMISM_ROLLUP_TX_ID)
-	viper.BindEnv(ethOptimismSigHashType, ETH_OPTIMISM_SIG_HASH_TYPE)
-
 	// Initialize rpc client
 	httpPathStr := viper.GetString(ethHttpPath)
 	if httpPathStr == "" {
@@ -207,6 +145,7 @@ func NewConfig() (*Config, error) {
 		return nil, err
 	}
 	keys := make([]*ecdsa.PrivateKey, 0)
+	senderAddrs := make([]common.Address, 0)
 	for _, keyFile := range keyFiles {
 		if keyFile.IsDir() {
 			continue
@@ -217,26 +156,12 @@ func NewConfig() (*Config, error) {
 			return nil, fmt.Errorf("unable to load ecdsa key file at %s", filePath)
 		}
 		keys = append(keys, key)
+		senderAddrs = append(senderAddrs, crypto.PubkeyToAddress(key.PublicKey))
 	}
 
 	// Load eth transfer destination addresses
-	addrs := make([]common.Address, 0)
-	addrFilePath := viper.GetString(ethAddrFilePath)
-	if addrFilePath == "" {
-		return nil, fmt.Errorf("missing %s", ethAddrFilePath)
-	}
-	addrFile, err := os.Open(addrFilePath)
+	addrs, err := loadAddresses()
 	if err != nil {
-		return nil, err
-	}
-	defer addrFile.Close()
-	scanner := bufio.NewScanner(addrFile)
-	for scanner.Scan() {
-		addrBytes := scanner.Bytes()
-		addr := common.BytesToAddress(addrBytes)
-		addrs = append(addrs, addr)
-	}
-	if err := scanner.Err(); err != nil {
 		return nil, err
 	}
 
@@ -246,17 +171,18 @@ func NewConfig() (*Config, error) {
 		return nil, err
 	}
 
-	// Load optimism params
-	l1SenderStr := viper.GetString(ethOptimismL1Sender)
-	var l1Sender *common.Address
-	if l1SenderStr != "" {
-		sender := common.HexToAddress(l1SenderStr)
-		l1Sender = &sender
+	// Load signer
+	chainID := viper.GetUint64(ethChainID)
+	signer, err := shared.TxSigner(txType, chainID)
+	if err != nil {
+		return nil, err
 	}
-	l1RollupTxId := viper.GetUint64(ethOptimismRollupTxID)
-	l1rtid := (hexutil.Uint64)(l1RollupTxId)
-	sigHashType := viper.GetUint(ethOptimismSigHashType)
-	queueOrigin := viper.GetInt64(ethOptimismQueueOrigin)
+
+	// Load optimism config
+	var optimismConfig *OptimismConfig
+	if txType == shared.OptimismL1ToL2 || txType == shared.OptimismL2 {
+		optimismConfig = NewOptimismConfig()
+	}
 
 	// Load deployment config
 	deploymentConfig, err := NewDeploymentConfig()
@@ -271,7 +197,7 @@ func NewConfig() (*Config, error) {
 	}
 
 	// Load send config
-	sendConfig, err := NewSendConfig()
+	sendConfig, err := NewSendConfig(addrs)
 	if err != nil {
 		return nil, err
 	}
@@ -280,28 +206,38 @@ func NewConfig() (*Config, error) {
 	return &Config{
 		Client:           rpcClient,
 		SenderKeys:       keys,
-		DestinationAddrs: addrs,
+		SenderAddrs:      senderAddrs,
 		Type:             txType,
-		ChainID:          viper.GetUint64(ethChainID),
-
-		L1SenderAddr: l1Sender,
-		L1RollupTxId: &l1rtid,
-		SigHashType:  (types.SignatureHashType)(uint8(sigHashType)),
-		QueueOrigin:  (types.QueueOrigin)(queueOrigin),
-
+		Signer:           signer,
+		OptimismConfig:   optimismConfig,
 		DeploymentConfig: deploymentConfig,
 		CallConfig:       callConfig,
 		SendConfig:       sendConfig,
 	}, nil
 }
 
+// NewOptimismConfig constructs and returns a new OptimismConfig
+func NewOptimismConfig() *OptimismConfig{
+	l1SenderStr := viper.GetString(ethOptimismL1Sender)
+	var l1Sender *common.Address
+	if l1SenderStr != "" {
+		sender := common.HexToAddress(l1SenderStr)
+		l1Sender = &sender
+	}
+	l1RollupTxId := viper.GetUint64(ethOptimismRollupTxID)
+	l1rtid := (hexutil.Uint64)(l1RollupTxId)
+	sigHashType := viper.GetUint(ethOptimismSigHashType)
+	queueOrigin := viper.GetInt64(ethOptimismQueueOrigin)
+	return &OptimismConfig{
+		L1SenderAddr: l1Sender,
+		L1RollupTxId: &l1rtid,
+		SigHashType:  (types.SignatureHashType)(uint8(sigHashType)),
+		QueueOrigin:  (types.QueueOrigin)(queueOrigin),
+	}
+}
+
 // NewDeploymentConfig constructs and returns a new DeploymentConfig
 func NewDeploymentConfig() (*DeploymentConfig, error) {
-	viper.BindEnv(ethDeploymentNumber, ETH_DEPLOYMENT_NUMBER)
-	viper.BindEnv(ethDeploymentData, ETH_DEPLOYMENT_HEX_DATA)
-	viper.BindEnv(ethDeploymentGasLimit, ETH_DEPLOYMENT_GAS_LIMIT)
-	viper.BindEnv(ethDeploymentGasPrice, ETH_DEPLOYMENT_GAS_PRICE)
-
 	hexData := viper.GetString(ethDeploymentData)
 	data := common.Hex2Bytes(hexData)
 	gasPriceStr := viper.GetString(ethDeploymentGasPrice)
@@ -320,16 +256,6 @@ func NewDeploymentConfig() (*DeploymentConfig, error) {
 
 // NewCallConfig constructs and returns a new CallConfig
 func NewCallConfig() (*CallConfig, error) {
-	viper.BindEnv(ethCallABIPath, ETH_CALL_ABI_PATH)
-	viper.BindEnv(ethCallFrequency, ETH_CALL_FREQ)
-	viper.BindEnv(ethCallGasLimit, ETH_CALL_GAS_LIMIT)
-	viper.BindEnv(ethCallGasPrice, ETH_CALL_GAS_PRICE)
-	viper.BindEnv(ethCallMethodName, ETH_CALL_METHOD_NAME)
-	viper.BindEnv(ethCallPositionEnd, ETH_CALL_POSITION_END)
-	viper.BindEnv(ethCallPositionStart, ETH_CALL_POSITION_START)
-	viper.BindEnv(ethCallStorageValue, ETH_CALL_STORAGE_VALUE)
-	viper.BindEnv(ethCallTotalNumber, ETH_CALL_TOTAL_NUMBER)
-
 	gasPriceStr := viper.GetString(ethCallGasPrice)
 	gasPrice, ok := new(big.Int).SetString(gasPriceStr, 10)
 	if !ok {
@@ -367,13 +293,7 @@ func NewCallConfig() (*CallConfig, error) {
 }
 
 // NewSendConfig constructs and returns a new SendConfig
-func NewSendConfig() (*SendConfig, error) {
-	viper.BindEnv(ethSendFrequency, ETH_SEND_FREQ)
-	viper.BindEnv(ethSendTotalNumber, ETH_SEND_TOTAL_NUMBER)
-	viper.BindEnv(ethSendAmount, ETH_SEND_AMOUNT)
-	viper.BindEnv(ethSendGasLimit, ETH_SEND_GAS_LIMIT)
-	viper.BindEnv(ethSendGasPrice, ETH_SEND_GAS_PRICE)
-
+func NewSendConfig(destinationAddrs []common.Address) (*SendConfig, error) {
 	amountStr := viper.GetString(ethSendAmount)
 	amount, ok := new(big.Int).SetString(amountStr, 10)
 	if !ok {
@@ -385,10 +305,35 @@ func NewSendConfig() (*SendConfig, error) {
 		return nil, fmt.Errorf("unable to convert gasPrice string (%s) into big.Int", gasPriceStr)
 	}
 	return &SendConfig{
+		DestinationAddresses: destinationAddrs,
 		Frequency: viper.GetDuration(ethSendFrequency),
 		Number:    viper.GetUint64(ethSendTotalNumber),
 		Amount:    amount,
 		GasPrice:  gasPrice,
 		GasLimit:  viper.GetUint64(ethSendGasLimit),
 	}, nil
+}
+
+// Load eth transfer destination addresses
+func loadAddresses() ([]common.Address, error) {
+	addrs := make([]common.Address, 0)
+	addrFilePath := viper.GetString(ethAddrFilePath)
+	if addrFilePath == "" {
+		return nil, fmt.Errorf("missing %s", ethAddrFilePath)
+	}
+	addrFile, err := os.Open(addrFilePath)
+	if err != nil {
+		return nil, err
+	}
+	defer addrFile.Close()
+	scanner := bufio.NewScanner(addrFile)
+	for scanner.Scan() {
+		addrBytes := scanner.Bytes()
+		addr := common.BytesToAddress(addrBytes)
+		addrs = append(addrs, addr)
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	return addrs, nil
 }
