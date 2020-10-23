@@ -17,40 +17,40 @@
 package auto
 
 import (
-	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/sirupsen/logrus"
 	"github.com/vulcanize/tx_spammer/pkg/shared"
 )
 
-// EthSender sends eth value transfer txs
-type EthSender struct {
-	client *rpc.Client
+// Spammer underlying struct type for spamming service
+type Spammer struct {
+	Deployer *ContractDeployer
+	Caller   *ContractCaller
+	Sender   *EthSender
 }
 
-// NewEthSender returns a new EthSender
-func NewEthSender(config *Config) *EthSender {
-	return &EthSender{
-		client: config.Client,
+// NewTxSpammer creates a new tx spamming service
+func NewTxSpammer(config *Config) shared.Service {
+	return &Spammer{
+		Deployer: NewContractDeployer(config),
+		Caller:   NewContractCaller(config),
+		Sender:   NewEthSender(config),
 	}
 }
 
-// Send awaits txs off the provided work queue and sends them
-func (s *EthSender) Send(quitChan <-chan bool, txRlpChan <-chan []byte) (<-chan bool, <-chan error) {
-	// done channel to signal quit signal has been received (any ongoing jobs were finished)
-	doneChan := make(chan bool)
-	// err channel returned to calling context
-	errChan := make(chan error)
+func (s *Spammer) Loop(quitChan <-chan bool) <-chan bool {
+	forwardQuit := make(chan bool)
+	doneChan, errChan := s.Sender.Send(forwardQuit)
 	go func() {
 		for {
 			select {
-			case tx := <-txRlpChan:
-				if err := shared.SendRawTransaction(s.client, tx); err != nil {
-					errChan <- err
-				}
-			case <-quitChan:
-				close(doneChan)
+			case err := <-errChan:
+				logrus.Error(err)
+			case forwardQuit <- <-quitChan:
+				return
+			case <-doneChan:
 				return
 			}
 		}
 	}()
-	return doneChan, errChan
+	return doneChan
 }

@@ -48,7 +48,7 @@ type Config struct {
 	Client *rpc.Client
 
 	// Key pairs for the accounts we will use to deploy contracts and send txs
-	SenderKeys []*ecdsa.PrivateKey
+	SenderKeys  []*ecdsa.PrivateKey
 	SenderAddrs []common.Address
 
 	// Type of the txs we are working with
@@ -92,8 +92,8 @@ type DeploymentConfig struct {
 
 // CallConfig holds the parameters for the contract calling txs
 type CallConfig struct {
-	GasLimit      uint64
-	GasPrice      *big.Int
+	GasLimit uint64
+	GasPrice *big.Int
 
 	MethodName    string
 	ABI           abi.ABI
@@ -112,13 +112,12 @@ type SendConfig struct {
 	Amount   *big.Int
 
 	DestinationAddresses []common.Address
-	Frequency time.Duration
-	Number    uint64
+	Frequency            time.Duration
+	Number               uint64
 }
 
 // todo: EIP1559Config
 type EIP1559Config struct {
-
 }
 
 func NewConfig() (*Config, error) {
@@ -217,7 +216,7 @@ func NewConfig() (*Config, error) {
 }
 
 // NewOptimismConfig constructs and returns a new OptimismConfig
-func NewOptimismConfig() *OptimismConfig{
+func NewOptimismConfig() *OptimismConfig {
 	l1SenderStr := viper.GetString(ethOptimismL1Sender)
 	var l1Sender *common.Address
 	if l1SenderStr != "" {
@@ -306,11 +305,11 @@ func NewSendConfig(destinationAddrs []common.Address) (*SendConfig, error) {
 	}
 	return &SendConfig{
 		DestinationAddresses: destinationAddrs,
-		Frequency: viper.GetDuration(ethSendFrequency),
-		Number:    viper.GetUint64(ethSendTotalNumber),
-		Amount:    amount,
-		GasPrice:  gasPrice,
-		GasLimit:  viper.GetUint64(ethSendGasLimit),
+		Frequency:            viper.GetDuration(ethSendFrequency),
+		Number:               viper.GetUint64(ethSendTotalNumber),
+		Amount:               amount,
+		GasPrice:             gasPrice,
+		GasLimit:             viper.GetUint64(ethSendGasLimit),
 	}, nil
 }
 

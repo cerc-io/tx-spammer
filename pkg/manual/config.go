@@ -19,11 +19,12 @@ package manual
 import (
 	"crypto/ecdsa"
 	"fmt"
-	"github.com/vulcanize/tx_spammer/pkg/shared"
 	"math/big"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/vulcanize/tx_spammer/pkg/shared"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"

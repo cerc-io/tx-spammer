@@ -14,8 +14,23 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package shared
+package auto
 
-const (
-	DefaultDeploymentAddrLogPathPrefix = "./accounts/addresses/"
-)
+import "crypto/ecdsa"
+
+type ContractDeployer struct {
+	SenderKeys []*ecdsa.PrivateKey
+	Config     *DeploymentConfig
+}
+
+func NewContractDeployer(config *Config) *ContractDeployer {
+	return &ContractDeployer{
+		Config:     config.DeploymentConfig,
+		SenderKeys: config.SenderKeys,
+	}
+}
+
+func (cp *ContractDeployer) Deploy() error {
+
+	return nil
+}

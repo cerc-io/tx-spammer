@@ -18,9 +18,10 @@ package manual
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"sync"
 	"time"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/vulcanize/tx_spammer/pkg/shared"
 )
