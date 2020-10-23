@@ -16,21 +16,62 @@
 
 package auto
 
-import "crypto/ecdsa"
+import (
+	"crypto/ecdsa"
+	"time"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/vulcanize/tx_spammer/pkg/shared"
+)
+
+const (
+	contractDeploymentDelay = time.Duration(15) * time.Second
+)
+
+// ContractDeployer is responsible for deploying contracts
 type ContractDeployer struct {
-	SenderKeys []*ecdsa.PrivateKey
-	Config     *DeploymentConfig
+	client      *rpc.Client
+	ty 		shared.TxType
+	txGenerator *TxGenerator
+	senderKeys []*ecdsa.PrivateKey
+	senderAddrs []common.Address
+	config     *DeploymentConfig
 }
 
-func NewContractDeployer(config *Config) *ContractDeployer {
+// NewContractDeployer returns a new ContractDeployer
+func NewContractDeployer(config *Config, gen *TxGenerator) *ContractDeployer {
 	return &ContractDeployer{
-		Config:     config.DeploymentConfig,
-		SenderKeys: config.SenderKeys,
+		client: config.Client,
+		ty: config.Type,
+		txGenerator: gen,
+		config:     config.DeploymentConfig,
+		senderKeys: config.SenderKeys,
+		senderAddrs: config.SenderAddrs,
 	}
 }
 
+// Deploy deploys the contracts according to the config provided at construction
 func (cp *ContractDeployer) Deploy() error {
+	ticker := time.NewTicker(contractDeploymentDelay)
+	for i := uint64(0); i < cp.config.Number; i++ {
+		<- ticker.C
+		for i, key := range cp.senderKeys {
+			txBytes, err := cp.txGenerator.GenerateTx(cp.ty, &GenParams{
+				Sender: cp.senderAddrs[i],
+				SenderKey: key,
+				GasLimit: cp.config.GasLimit,
+				GasPrice: cp.config.GasPrice,
+				Data: cp.config.Data,
+			})
+			if err != nil {
+				return err
+			}
+			if err := shared.SendRawTransaction(cp.client, txBytes); err != nil {
+				return err
+			}
 
+		}
+	}
 	return nil
 }

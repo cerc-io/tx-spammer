@@ -31,7 +31,7 @@ func NewTxSpammer(params []TxParams) shared.Service {
 	}
 }
 
-func (s *Spammer) Loop(quitChan <-chan bool) <-chan bool {
+func (s *Spammer) Loop(quitChan <-chan bool) (<-chan bool, error) {
 	forwardQuit := make(chan bool)
 	doneChan, errChan := s.Sender.Send(forwardQuit)
 	go func() {
@@ -46,5 +46,5 @@ func (s *Spammer) Loop(quitChan <-chan bool) <-chan bool {
 			}
 		}
 	}()
-	return doneChan
+	return doneChan, nil
 }

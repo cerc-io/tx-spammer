@@ -40,8 +40,6 @@ const (
 	ETH_CALL_TOTAL_NUMBER   = "ETH_CALL_TOTAL_NUMBER"
 	ETH_CALL_ABI_PATH       = "ETH_CALL_ABI_PATH"
 	ETH_CALL_METHOD_NAME    = "ETH_CALL_METHOD_NAME"
-	ETH_CALL_POSITION_START = "ETH_CALL_POSITION_START"
-	ETH_CALL_POSITION_END   = "ETH_CALL_POSITION_END"
 	ETH_CALL_STORAGE_VALUE  = "ETH_CALL_STORAGE_VALUE"
 	ETH_CALL_GAS_LIMIT      = "ETH_CALL_GAS_LIMIT"
 	ETH_CALL_GAS_PRICE      = "ETH_CALL_GAS_PRICE"
@@ -73,8 +71,6 @@ const (
 	ethCallTotalNumber   = "contractSpammer.totalNumber"
 	ethCallABIPath       = "contractSpammer.abiPath"
 	ethCallMethodName    = "contractSpammer.methodName"
-	ethCallPositionStart = "contractSpammer.positionStart"
-	ethCallPositionEnd   = "contractSpammer.positionEnd"
 	ethCallStorageValue  = "contractSpammer.storageValue"
 	ethCallGasLimit      = "contractSpammer.gasLimit"
 	ethCallGasPrice      = "contractSpammer.gasPrice"
@@ -108,8 +104,6 @@ func bindEnv() {
 	viper.BindEnv(ethCallGasLimit, ETH_CALL_GAS_LIMIT)
 	viper.BindEnv(ethCallGasPrice, ETH_CALL_GAS_PRICE)
 	viper.BindEnv(ethCallMethodName, ETH_CALL_METHOD_NAME)
-	viper.BindEnv(ethCallPositionEnd, ETH_CALL_POSITION_END)
-	viper.BindEnv(ethCallPositionStart, ETH_CALL_POSITION_START)
 	viper.BindEnv(ethCallStorageValue, ETH_CALL_STORAGE_VALUE)
 	viper.BindEnv(ethCallTotalNumber, ETH_CALL_TOTAL_NUMBER)
 

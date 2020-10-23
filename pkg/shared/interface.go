@@ -18,5 +18,5 @@ package shared
 
 // Service looping interface
 type Service interface {
-	Loop(quitChan <-chan bool) (doneChan <-chan bool)
+	Loop(quitChan <-chan bool) (doneChan <-chan bool, err error)
 }

@@ -46,7 +46,10 @@ func sendTxs() {
 	}
 	txSpammer := manual.NewTxSpammer(params)
 	quitChan := make(chan bool)
-	doneChan := txSpammer.Loop(quitChan)
+	doneChan, err := txSpammer.Loop(quitChan)
+	if err != nil {
+		logWithCommand.Fatal(err)
+	}
 
 	go func() {
 		shutdown := make(chan os.Signal)

@@ -284,8 +284,6 @@ func NewCallConfig() (*CallConfig, error) {
 		GasLimit:      viper.GetUint64(ethCallGasLimit),
 		MethodName:    methodName,
 		ABI:           parsedABI,
-		PositionEnd:   viper.GetUint64(ethCallPositionEnd),
-		PositionStart: viper.GetUint64(ethCallPositionStart),
 		StorageValue:  viper.GetUint64(ethCallStorageValue),
 		Frequency:     viper.GetDuration(ethCallFrequency),
 	}, nil

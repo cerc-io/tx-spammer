@@ -24,33 +24,48 @@ import (
 // Spammer underlying struct type for spamming service
 type Spammer struct {
 	Deployer *ContractDeployer
-	Caller   *ContractCaller
 	Sender   *EthSender
+	TxGenerator *TxGenerator
 }
 
 // NewTxSpammer creates a new tx spamming service
 func NewTxSpammer(config *Config) shared.Service {
+	gen := NewTxGenerator(config)
 	return &Spammer{
-		Deployer: NewContractDeployer(config),
-		Caller:   NewContractCaller(config),
+		Deployer: NewContractDeployer(config, gen),
 		Sender:   NewEthSender(config),
+		TxGenerator: gen,
 	}
 }
 
-func (s *Spammer) Loop(quitChan <-chan bool) <-chan bool {
-	forwardQuit := make(chan bool)
-	doneChan, errChan := s.Sender.Send(forwardQuit)
+func (s *Spammer) Loop(quitChan <-chan bool) (<-chan bool, error) {
+	if err := s.Deployer.Deploy(); err != nil {
+		return nil, err
+	}
+	senderQuit := make(chan bool)
+	generatorQuit := make(chan bool)
+	genDoneChan, txRlpChan, genErrChan := s.TxGenerator.GenerateTxs(generatorQuit)
+
+	doneChan, errChan := s.Sender.Send(senderQuit, txRlpChan)
 	go func() {
 		for {
 			select {
+			case <-genDoneChan:
+				logrus.Info("all txs have been generated, beginning shut down sequence")
+				senderQuit <- true
+			case err := <-genErrChan:
+				logrus.Error(err)
+				senderQuit <- true
 			case err := <-errChan:
 				logrus.Error(err)
-			case forwardQuit <- <-quitChan:
-				return
-			case <-doneChan:
+				senderQuit <- true // NOTE: sender will close doneChan when it receives a quit signal
+			case <-quitChan:
+				senderQuit <- true
+			case <-doneChan: // NOTE CONT: which will be received here so that this context can close down only once the sender and generator have
+				generatorQuit <- true
 				return
 			}
 		}
 	}()
-	return doneChan
+	return doneChan, nil
 }

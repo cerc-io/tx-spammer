@@ -18,6 +18,7 @@ package auto
 
 import (
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/sirupsen/logrus"
 	"github.com/vulcanize/tx_spammer/pkg/shared"
 )
 
@@ -47,6 +48,7 @@ func (s *EthSender) Send(quitChan <-chan bool, txRlpChan <-chan []byte) (<-chan 
 					errChan <- err
 				}
 			case <-quitChan:
+				logrus.Info("quitting the Send loop")
 				close(doneChan)
 				return
 			}

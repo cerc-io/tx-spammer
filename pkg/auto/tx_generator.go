@@ -40,7 +40,7 @@ type TxGenerator struct {
 }
 
 // NewTxGenerator creates a new tx generator
-func NewTxGenerator(config Config) *TxGenerator {
+func NewTxGenerator(config *Config) *TxGenerator {
 	nonces := make(map[common.Address]*uint64)
 	for _, addr := range config.SenderAddrs {
 		startingNonce := uint64(0)
@@ -56,7 +56,6 @@ func NewTxGenerator(config Config) *TxGenerator {
 
 // GenParams params for GenerateTx method calls
 type GenParams struct {
-	Signer    types.Signer
 	Sender    common.Address
 	SenderKey *ecdsa.PrivateKey
 	To        *common.Address
@@ -66,8 +65,10 @@ type GenParams struct {
 	Data      []byte
 }
 
+// GenerateTxs loops and generates txs according the configuration passed in during construction
 func (tg TxGenerator) GenerateTxs(quitChan <-chan bool) (<-chan bool, <-chan []byte, <-chan error) {
-
+	// TODO: this
+	return nil, nil, nil
 }
 
 // GenerateTx generates tx from the provided params
@@ -98,7 +99,7 @@ func (gen TxGenerator) genL2(params *GenParams, op *OptimismConfig) ([]byte, err
 	} else {
 		tx = types.NewTransaction(nonce, *params.To, params.Amount, params.GasLimit, params.GasPrice, params.Data, op.L1SenderAddr, op.L1RollupTxId, op.QueueOrigin, op.SigHashType)
 	}
-	signedTx, err := types.SignTx(tx, params.Signer, params.SenderKey)
+	signedTx, err := types.SignTx(tx, gen.signer, params.SenderKey)
 	if err != nil {
 		return nil, err
 	}

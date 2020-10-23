@@ -21,12 +21,10 @@
     frequency = 30 # how often to send a transaction (in seconds) - env: $ETH_CALL_FREQ
     totalNumber = 10000 # total number of transactions to send (across all senders) - env: $ETH_CALL_TOTAL_NUMBER
     abiPath = "" # path to the abi file for the contract we are calling - env: $ETH_CALL_ABI_PATH
-    # NOTE: we expect to be calling a method such as Put(uint256 pos, uint256 val) where the first argument is an
+    # NOTE: we expect to be calling a method such as Put(address addr, uint256 val) where the first argument is an
     # integer than we can increment to store values at new locations in the contract trie (to grow it) and
     # the second argument is an integer value that we store at these positions
     methodName = "Put" # the method name we are calling - env: $ETH_CALL_METHOD_NAME
-    positionStart = 0 # the starting value for the first argument - env: $ETH_CALL_POSITION_START
-    positionEnd = 1000 # the maximum value for the first argument - env: $ETH_CALL_POSITION_END
     storageValue =  1337 # the value we store at each position - env: $ETH_CALL_STORAGE_VALUE
     gasLimit = 0 # gasLimit to use for the eth call txs - env: $ETH_CALL_GAS_LIMIT
     gasPrice = "0" # gasPrice to use for the eth call txs - env: $ETH_CALL_GAS_PRICE
