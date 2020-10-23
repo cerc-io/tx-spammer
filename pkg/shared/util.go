@@ -17,10 +17,16 @@
 package shared
 
 import (
+	"context"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"math/big"
+	"os"
 
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/ethereum/temp/common/hexutil"
 )
 
 // ChainConfig returns the appropriate ethereum chain config for the provided chain id
@@ -33,4 +39,25 @@ func TxSigner(kind TxType, chainID uint64) (types.Signer, error) {
 	default:
 		return nil, fmt.Errorf("chain config for chainid %d not available", chainID)
 	}
+}
+
+// SendRawTransaction sends a raw, signed tx using the provided client
+func SendRawTransaction(rpcClient *rpc.Client, txRlp []byte) error {
+	return rpcClient.CallContext(context.Background(), nil, "eth_sendRawTransaction", hexutil.Encode(txRlp))
+}
+
+// WriteContractAddr appends a contract addr to an out file
+func WriteContractAddr(filePath string, senderAddr common.Address, nonce uint64) error {
+	if filePath == "" {
+		filePath = DefaultDeploymentAddrLogPathPrefix + senderAddr.Hex()
+	}
+	contractAddr := crypto.CreateAddress(senderAddr, nonce)
+	f, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	if _, err := f.WriteString(contractAddr.Hex() + "\n"); err != nil {
+		return err
+	}
+	return f.Close()
 }
