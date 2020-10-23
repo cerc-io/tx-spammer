@@ -23,7 +23,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
-	"github.com/vulcanize/tx_spammer/pkg"
+	"github.com/vulcanize/tx_spammer/pkg/manual"
 )
 
 // sendTxsCmd represents the sendTxs command
@@ -41,11 +41,11 @@ Support standard, optimism L2, optimism L1 to L2, and EIP1559 transactions`,
 }
 
 func sendTxs() {
-	params, err := tx_spammer.NewTxParams()
+	params, err := manual.NewTxParams()
 	if err != nil {
 		logWithCommand.Fatal(err)
 	}
-	txSpammer := tx_spammer.NewTxSpammer(params)
+	txSpammer := manual.NewTxSpammer(params)
 	wg := new(sync.WaitGroup)
 	quitChan := make(chan bool)
 	txSpammer.Loop(wg, quitChan)
