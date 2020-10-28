@@ -32,46 +32,48 @@ const (
 // ContractDeployer is responsible for deploying contracts
 type ContractDeployer struct {
 	client      *rpc.Client
-	ty 		shared.TxType
+	ty          shared.TxType
 	txGenerator *TxGenerator
-	senderKeys []*ecdsa.PrivateKey
+	senderKeys  []*ecdsa.PrivateKey
 	senderAddrs []common.Address
-	config     *DeploymentConfig
+	config      *DeploymentConfig
 }
 
 // NewContractDeployer returns a new ContractDeployer
 func NewContractDeployer(config *Config, gen *TxGenerator) *ContractDeployer {
 	return &ContractDeployer{
-		client: config.Client,
-		ty: config.Type,
+		client:      config.Client,
+		ty:          config.Type,
 		txGenerator: gen,
-		config:     config.DeploymentConfig,
-		senderKeys: config.SenderKeys,
+		config:      config.DeploymentConfig,
+		senderKeys:  config.SenderKeys,
 		senderAddrs: config.SenderAddrs,
 	}
 }
 
 // Deploy deploys the contracts according to the config provided at construction
-func (cp *ContractDeployer) Deploy() error {
+func (cp *ContractDeployer) Deploy() ([]common.Address, error) {
+	contractAddrs := make([]common.Address, 0, cp.config.Number*uint64(len(cp.senderKeys)))
 	ticker := time.NewTicker(contractDeploymentDelay)
+	defer ticker.Stop()
 	for i := uint64(0); i < cp.config.Number; i++ {
-		<- ticker.C
+		<-ticker.C
 		for i, key := range cp.senderKeys {
-			txBytes, err := cp.txGenerator.GenerateTx(cp.ty, &GenParams{
-				Sender: cp.senderAddrs[i],
+			txBytes, contractAddr, err := cp.txGenerator.GenerateTx(cp.ty, &GenParams{
+				Sender:    cp.senderAddrs[i],
 				SenderKey: key,
-				GasLimit: cp.config.GasLimit,
-				GasPrice: cp.config.GasPrice,
-				Data: cp.config.Data,
+				GasLimit:  cp.config.GasLimit,
+				GasPrice:  cp.config.GasPrice,
+				Data:      cp.config.Data,
 			})
 			if err != nil {
-				return err
+				return nil, err
 			}
 			if err := shared.SendRawTransaction(cp.client, txBytes); err != nil {
-				return err
+				return nil, err
 			}
-
+			contractAddrs = append(contractAddrs, contractAddr)
 		}
 	}
-	return nil
+	return contractAddrs, nil
 }

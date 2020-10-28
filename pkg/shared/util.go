@@ -48,17 +48,17 @@ func SendRawTransaction(rpcClient *rpc.Client, txRlp []byte) error {
 }
 
 // WriteContractAddr appends a contract addr to an out file
-func WriteContractAddr(filePath string, senderAddr common.Address, nonce uint64) error {
+func WriteContractAddr(filePath string, senderAddr common.Address, nonce uint64) (common.Address, error) {
 	if filePath == "" {
 		filePath = DefaultDeploymentAddrLogPathPrefix + senderAddr.Hex()
 	}
 	contractAddr := crypto.CreateAddress(senderAddr, nonce)
 	f, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		return err
+		return common.Address{}, err
 	}
 	if _, err := f.WriteString(contractAddr.Hex() + "\n"); err != nil {
-		return err
+		return common.Address{}, err
 	}
-	return f.Close()
+	return contractAddr, f.Close()
 }

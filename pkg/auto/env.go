@@ -20,11 +20,10 @@ import "github.com/spf13/viper"
 
 const (
 	// env variables
-	ETH_KEY_DIR_PATH  = "ETH_KEY_DIR_PATH"
-	ETH_ADDR_DIR_PATH = "ETH_ADDR_DIR_PATH"
-	ETH_HTTP_PATH     = "ETH_HTTP_PATH"
-	ETH_CHAIN_ID      = "ETH_CHAIN_ID"
-	ETH_TX_TYPE       = "ETH_TX_TYPE"
+	ETH_KEY_DIR_PATH = "ETH_KEY_DIR_PATH"
+	ETH_HTTP_PATH    = "ETH_HTTP_PATH"
+	ETH_CHAIN_ID     = "ETH_CHAIN_ID"
+	ETH_TX_TYPE      = "ETH_TX_TYPE"
 
 	ETH_DEPLOYMENT_NUMBER    = "ETH_DEPLOYMENT_NUMBER"
 	ETH_DEPLOYMENT_HEX_DATA  = "ETH_DEPLOYMENT_HEX_DATA"
@@ -36,13 +35,13 @@ const (
 	ETH_OPTIMISM_SIG_HASH_TYPE = "ETH_OPTIMISM_SIG_HASH_TYPE"
 	ETH_OPTIMISM_QUEUE_ORIGIN  = "ETH_OPTIMISM_QUEUE_ORIGIN"
 
-	ETH_CALL_FREQ           = "ETH_CALL_FREQ"
-	ETH_CALL_TOTAL_NUMBER   = "ETH_CALL_TOTAL_NUMBER"
-	ETH_CALL_ABI_PATH       = "ETH_CALL_ABI_PATH"
-	ETH_CALL_METHOD_NAME    = "ETH_CALL_METHOD_NAME"
-	ETH_CALL_STORAGE_VALUE  = "ETH_CALL_STORAGE_VALUE"
-	ETH_CALL_GAS_LIMIT      = "ETH_CALL_GAS_LIMIT"
-	ETH_CALL_GAS_PRICE      = "ETH_CALL_GAS_PRICE"
+	ETH_CALL_FREQ          = "ETH_CALL_FREQ"
+	ETH_CALL_TOTAL_NUMBER  = "ETH_CALL_TOTAL_NUMBER"
+	ETH_CALL_ABI_PATH      = "ETH_CALL_ABI_PATH"
+	ETH_CALL_METHOD_NAME   = "ETH_CALL_METHOD_NAME"
+	ETH_CALL_STORAGE_VALUE = "ETH_CALL_STORAGE_VALUE"
+	ETH_CALL_GAS_LIMIT     = "ETH_CALL_GAS_LIMIT"
+	ETH_CALL_GAS_PRICE     = "ETH_CALL_GAS_PRICE"
 
 	ETH_SEND_FREQ         = "ETH_SEND_FREQ"
 	ETH_SEND_TOTAL_NUMBER = "ETH_SEND_TOTAL_NUMBER"
@@ -51,11 +50,10 @@ const (
 	ETH_SEND_GAS_PRICE    = "ETH_SEND_GAS_PRICE"
 
 	// toml bindings
-	ethKeyDirPath   = "eth.keyDirPath"
-	ethAddrFilePath = "eth.addrFilePath"
-	ethHttpPath     = "eth.httpPath"
-	ethChainID      = "eth.chainID"
-	ethType         = "eth.type"
+	ethKeyDirPath = "eth.keyDirPath"
+	ethHttpPath   = "eth.httpPath"
+	ethChainID    = "eth.chainID"
+	ethType       = "eth.type"
 
 	ethDeploymentNumber   = "deployment.number"
 	ethDeploymentData     = "deployment.hexData"
@@ -67,13 +65,13 @@ const (
 	ethOptimismSigHashType = "optimism.sigHashType"
 	ethOptimismQueueOrigin = "optimism.queueOrigin"
 
-	ethCallFrequency     = "contractSpammer.frequency"
-	ethCallTotalNumber   = "contractSpammer.totalNumber"
-	ethCallABIPath       = "contractSpammer.abiPath"
-	ethCallMethodName    = "contractSpammer.methodName"
-	ethCallStorageValue  = "contractSpammer.storageValue"
-	ethCallGasLimit      = "contractSpammer.gasLimit"
-	ethCallGasPrice      = "contractSpammer.gasPrice"
+	ethCallFrequency    = "contractSpammer.frequency"
+	ethCallTotalNumber  = "contractSpammer.totalNumber"
+	ethCallABIPath      = "contractSpammer.abiPath"
+	ethCallMethodName   = "contractSpammer.methodName"
+	ethCallStorageValue = "contractSpammer.storageValue"
+	ethCallGasLimit     = "contractSpammer.gasLimit"
+	ethCallGasPrice     = "contractSpammer.gasPrice"
 
 	ethSendFrequency   = "sendSpammer.frequency"
 	ethSendTotalNumber = "sendSpammer.totalNumber"
@@ -84,7 +82,6 @@ const (
 
 func bindEnv() {
 	viper.BindEnv(ethKeyDirPath, ETH_KEY_DIR_PATH)
-	viper.BindEnv(ethAddrFilePath, ETH_ADDR_DIR_PATH)
 	viper.BindEnv(ethHttpPath, ETH_HTTP_PATH)
 	viper.BindEnv(ethType, ETH_TX_TYPE)
 	viper.BindEnv(ethChainID, ETH_CHAIN_ID)

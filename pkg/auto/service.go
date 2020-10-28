@@ -17,52 +17,61 @@
 package auto
 
 import (
+	"fmt"
+
 	"github.com/sirupsen/logrus"
 	"github.com/vulcanize/tx_spammer/pkg/shared"
 )
 
 // Spammer underlying struct type for spamming service
 type Spammer struct {
-	Deployer *ContractDeployer
-	Sender   *EthSender
+	Deployer    *ContractDeployer
+	Sender      *EthSender
 	TxGenerator *TxGenerator
+	config      *Config
 }
 
 // NewTxSpammer creates a new tx spamming service
 func NewTxSpammer(config *Config) shared.Service {
 	gen := NewTxGenerator(config)
 	return &Spammer{
-		Deployer: NewContractDeployer(config, gen),
-		Sender:   NewEthSender(config),
+		Deployer:    NewContractDeployer(config, gen),
+		Sender:      NewEthSender(config),
 		TxGenerator: gen,
+		config:      config,
 	}
 }
 
 func (s *Spammer) Loop(quitChan <-chan bool) (<-chan bool, error) {
-	if err := s.Deployer.Deploy(); err != nil {
-		return nil, err
+	contractAddrs, err := s.Deployer.Deploy()
+	if err != nil {
+		return nil, fmt.Errorf("contract deployment error: %v", err)
 	}
+	genQuit := make(chan bool)
 	senderQuit := make(chan bool)
-	generatorQuit := make(chan bool)
-	genDoneChan, txRlpChan, genErrChan := s.TxGenerator.GenerateTxs(generatorQuit)
-
-	doneChan, errChan := s.Sender.Send(senderQuit, txRlpChan)
+	doneChan := make(chan bool)
+	genDoneChan, txRlpChan, genErrChan := s.TxGenerator.GenerateTxs(genQuit, contractAddrs)
+	sendDoneChan, sendErrChan := s.Sender.Send(senderQuit, txRlpChan)
 	go func() {
+		defer close(doneChan)
 		for {
 			select {
-			case <-genDoneChan:
-				logrus.Info("all txs have been generated, beginning shut down sequence")
-				senderQuit <- true
 			case err := <-genErrChan:
-				logrus.Error(err)
-				senderQuit <- true
-			case err := <-errChan:
-				logrus.Error(err)
-				senderQuit <- true // NOTE: sender will close doneChan when it receives a quit signal
+				logrus.Errorf("tx generation error: %v", err)
+				close(genQuit)
+				<-genDoneChan
+				close(senderQuit)
+			case err := <-sendErrChan:
+				logrus.Errorf("tx sending error: %v", err)
+				close(genQuit)
+				<-genDoneChan
+				close(senderQuit)
 			case <-quitChan:
-				senderQuit <- true
-			case <-doneChan: // NOTE CONT: which will be received here so that this context can close down only once the sender and generator have
-				generatorQuit <- true
+				logrus.Error("shutting down tx spammer")
+				close(genQuit)
+				<-genDoneChan
+				close(senderQuit)
+			case <-sendDoneChan:
 				return
 			}
 		}

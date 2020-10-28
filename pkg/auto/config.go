@@ -17,13 +17,11 @@
 package auto
 
 import (
-	"bufio"
 	"bytes"
 	"crypto/ecdsa"
 	"fmt"
 	"io/ioutil"
 	"math/big"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -36,6 +34,11 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/spf13/viper"
 	"github.com/vulcanize/tx_spammer/pkg/shared"
+)
+
+var (
+	receiverAddressSeed = common.HexToAddress("0xe48C9A989438606a79a7560cfba3d34BAfBAC38E")
+	storageAddressSeed  = common.HexToAddress("0x029298Ac95662F2b54A7F1116f3F8105eb2b00F5")
 )
 
 func init() {
@@ -95,14 +98,12 @@ type CallConfig struct {
 	GasLimit uint64
 	GasPrice *big.Int
 
-	MethodName    string
-	ABI           abi.ABI
-	PositionStart uint64
-	PositionEnd   uint64
-	StorageValue  uint64
+	MethodName   string
+	ABI          abi.ABI
+	StorageValue uint64
+	StorageAddrs []common.Address
 
 	Frequency time.Duration
-	Number    uint64
 }
 
 // SendConfig holds the parameters for the eth transfer txs
@@ -113,12 +114,10 @@ type SendConfig struct {
 
 	DestinationAddresses []common.Address
 	Frequency            time.Duration
-	Number               uint64
 }
 
 // todo: EIP1559Config
-type EIP1559Config struct {
-}
+type EIP1559Config struct{}
 
 func NewConfig() (*Config, error) {
 	// Initialize rpc client
@@ -158,12 +157,6 @@ func NewConfig() (*Config, error) {
 		senderAddrs = append(senderAddrs, crypto.PubkeyToAddress(key.PublicKey))
 	}
 
-	// Load eth transfer destination addresses
-	addrs, err := loadAddresses()
-	if err != nil {
-		return nil, err
-	}
-
 	// Load tx type
 	txType, err := shared.TxTypeFromString(viper.GetString(ethType))
 	if err != nil {
@@ -196,7 +189,7 @@ func NewConfig() (*Config, error) {
 	}
 
 	// Load send config
-	sendConfig, err := NewSendConfig(addrs)
+	sendConfig, err := NewSendConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -277,20 +270,24 @@ func NewCallConfig() (*CallConfig, error) {
 	if !exist {
 		return nil, fmt.Errorf("method '%s' not found in provided abi", methodName)
 	}
-
+	number := viper.GetUint64(ethCallTotalNumber)
+	addrs := make([]common.Address, number)
+	for i := uint64(0); i < number; i++ {
+		addrs[i] = crypto.CreateAddress(storageAddressSeed, i)
+	}
 	return &CallConfig{
-		Number:        viper.GetUint64(ethCallTotalNumber),
-		GasPrice:      gasPrice,
-		GasLimit:      viper.GetUint64(ethCallGasLimit),
-		MethodName:    methodName,
-		ABI:           parsedABI,
-		StorageValue:  viper.GetUint64(ethCallStorageValue),
-		Frequency:     viper.GetDuration(ethCallFrequency),
+		GasPrice:     gasPrice,
+		GasLimit:     viper.GetUint64(ethCallGasLimit),
+		MethodName:   methodName,
+		ABI:          parsedABI,
+		StorageValue: viper.GetUint64(ethCallStorageValue),
+		Frequency:    viper.GetDuration(ethCallFrequency),
+		StorageAddrs: addrs,
 	}, nil
 }
 
 // NewSendConfig constructs and returns a new SendConfig
-func NewSendConfig(destinationAddrs []common.Address) (*SendConfig, error) {
+func NewSendConfig() (*SendConfig, error) {
 	amountStr := viper.GetString(ethSendAmount)
 	amount, ok := new(big.Int).SetString(amountStr, 10)
 	if !ok {
@@ -301,36 +298,16 @@ func NewSendConfig(destinationAddrs []common.Address) (*SendConfig, error) {
 	if !ok {
 		return nil, fmt.Errorf("unable to convert gasPrice string (%s) into big.Int", gasPriceStr)
 	}
+	number := viper.GetUint64(ethSendTotalNumber)
+	addrs := make([]common.Address, number)
+	for i := uint64(0); i < number; i++ {
+		addrs[i] = crypto.CreateAddress(receiverAddressSeed, i)
+	}
 	return &SendConfig{
-		DestinationAddresses: destinationAddrs,
+		DestinationAddresses: addrs,
 		Frequency:            viper.GetDuration(ethSendFrequency),
-		Number:               viper.GetUint64(ethSendTotalNumber),
 		Amount:               amount,
 		GasPrice:             gasPrice,
 		GasLimit:             viper.GetUint64(ethSendGasLimit),
 	}, nil
-}
-
-// Load eth transfer destination addresses
-func loadAddresses() ([]common.Address, error) {
-	addrs := make([]common.Address, 0)
-	addrFilePath := viper.GetString(ethAddrFilePath)
-	if addrFilePath == "" {
-		return nil, fmt.Errorf("missing %s", ethAddrFilePath)
-	}
-	addrFile, err := os.Open(addrFilePath)
-	if err != nil {
-		return nil, err
-	}
-	defer addrFile.Close()
-	scanner := bufio.NewScanner(addrFile)
-	for scanner.Scan() {
-		addrBytes := scanner.Bytes()
-		addr := common.BytesToAddress(addrBytes)
-		addrs = append(addrs, addr)
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, err
-	}
-	return addrs, nil
 }

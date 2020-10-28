@@ -66,7 +66,7 @@ func (gen TxGenerator) genL2(params TxParams) ([]byte, error) {
 	tx := new(types.Transaction)
 	if params.To == nil {
 		tx = types.NewContractCreation(nonce, params.Amount, params.GasLimit, params.GasPrice, params.Data, params.L1SenderAddr, params.L1RollupTxId, params.QueueOrigin)
-		if err := shared.WriteContractAddr(params.ContractAddrWritePath, params.Sender, nonce); err != nil {
+		if _, err := shared.WriteContractAddr(params.ContractAddrWritePath, params.Sender, nonce); err != nil {
 			return nil, err
 		}
 

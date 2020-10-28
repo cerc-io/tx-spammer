@@ -36,11 +36,11 @@ func NewEthSender(config *Config) *EthSender {
 
 // Send awaits txs off the provided work queue and sends them
 func (s *EthSender) Send(quitChan <-chan bool, txRlpChan <-chan []byte) (<-chan bool, <-chan error) {
-	// done channel to signal quit signal has been received (any ongoing jobs were finished)
-	doneChan := make(chan bool)
 	// err channel returned to calling context
 	errChan := make(chan error)
+	doneChan := make(chan bool)
 	go func() {
+		defer close(doneChan)
 		for {
 			select {
 			case tx := <-txRlpChan:
@@ -48,8 +48,7 @@ func (s *EthSender) Send(quitChan <-chan bool, txRlpChan <-chan []byte) (<-chan 
 					errChan <- err
 				}
 			case <-quitChan:
-				logrus.Info("quitting the Send loop")
-				close(doneChan)
+				logrus.Info("quitting Send loop")
 				return
 			}
 		}
