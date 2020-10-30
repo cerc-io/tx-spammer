@@ -17,14 +17,13 @@
 package manual
 
 import (
-	"context"
 	"fmt"
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/sirupsen/logrus"
+
+	"github.com/vulcanize/tx_spammer/pkg/shared"
 )
 
 // TxSender type for
@@ -86,10 +85,6 @@ func (s *TxSender) genAndSend(p TxParams) error {
 	if err != nil {
 		return err
 	}
-	return sendRawTransaction(p.Client, tx, p.Name)
-}
-
-func sendRawTransaction(rpcClient *rpc.Client, txRlp []byte, name string) error {
-	logrus.Infof("sending tx %s", name)
-	return rpcClient.CallContext(context.Background(), nil, "eth_sendRawTransaction", hexutil.Encode(txRlp))
+	logrus.Infof("sending tx %s", p.Name)
+	return shared.SendRawTransaction(p.Client, tx)
 }

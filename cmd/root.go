@@ -83,7 +83,7 @@ func init() {
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 
-	// flags
+	// shared flags
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file location")
 
 	rootCmd.PersistentFlags().String("log-level", log.InfoLevel.String(), "Log level (trace, debug, info, warn, error, fatal, panic")

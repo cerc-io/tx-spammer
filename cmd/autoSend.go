@@ -20,31 +20,30 @@ import (
 	"os/signal"
 
 	"github.com/sirupsen/logrus"
-
 	"github.com/spf13/cobra"
-	"github.com/vulcanize/tx_spammer/pkg/manual"
+	"github.com/vulcanize/tx_spammer/pkg/auto"
 )
 
-// sendTxsCmd represents the sendTxs command
-var sendTxsCmd = &cobra.Command{
-	Use:   "sendTxs",
+// autoSendCmd represents the autoSend command
+var autoSendCmd = &cobra.Command{
+	Use:   "autoSend",
 	Short: "Send large volumes of different tx types to different nodes for testing purposes",
 	Long: `Loads tx configuration from .toml config file
-Generates txs from configuration and sends them to designated node according to set frequency and number
+Generates txs from configuration and provided private keys and sends them to designated node according to set frequency and number
 Support standard, optimism L2, optimism L1 to L2, and EIP1559 transactions`,
 	Run: func(cmd *cobra.Command, args []string) {
 		subCommand = cmd.CalledAs()
 		logWithCommand = *logrus.WithField("SubCommand", subCommand)
-		sendTxs()
+		autoSend()
 	},
 }
 
-func sendTxs() {
-	params, err := manual.NewTxParams()
+func autoSend() {
+	config, err := auto.NewConfig()
 	if err != nil {
 		logWithCommand.Fatal(err)
 	}
-	txSpammer := manual.NewTxSpammer(params)
+	txSpammer := auto.NewTxSpammer(config)
 	quitChan := make(chan bool)
 	doneChan, err := txSpammer.Loop(quitChan)
 	if err != nil {
@@ -58,8 +57,8 @@ func sendTxs() {
 		close(quitChan)
 	}()
 	<-doneChan
-
 }
+
 func init() {
-	rootCmd.AddCommand(sendTxsCmd)
+	rootCmd.AddCommand(autoSendCmd)
 }

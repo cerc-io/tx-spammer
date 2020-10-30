@@ -19,11 +19,12 @@ package manual
 import (
 	"crypto/ecdsa"
 	"fmt"
-	"github.com/vulcanize/tx_spammer/pkg/shared"
 	"math/big"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/vulcanize/tx_spammer/pkg/shared"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -31,36 +32,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/spf13/viper"
-)
-
-const (
-	ETH_TX_LIST  = "ETH_TX_LIST"
-	ETH_ADDR_LOG = "ETH_ADDR_LOG"
-
-	defaultGenKeyWritePathPrefix = "./accounts/keys/"
-	defaultAddrLogPath           = "./accounts/addresses/accounts"
-
-	typeSuffix            = ".type"
-	httpPathSuffix        = ".http"
-	toSuffix              = ".to"
-	amountSuffix          = ".amount"
-	gasLimitSuffix        = ".gasLimit"
-	gasPriceSuffix        = ".gasPrice"
-	gasPremiumSuffix      = ".gasPremium"
-	feeCapSuffix          = ".feeCap"
-	dataSuffix            = ".data"
-	senderKeyPathSuffix   = ".senderKeyPath"
-	writeSenderPathSuffix = ".writeSenderPath"
-	l1SenderSuffix        = ".l1Sender"
-	l1RollupTxIdSuffix    = ".l1RollupTxId"
-	sigHashTypeSuffix     = ".sigHashType"
-	frequencySuffix       = ".frequency"
-	totalNumberSuffix     = ".totalNumber"
-	delaySuffix           = ".delay"
-	startingNonceSuffix   = ".startingNonce"
-	queueOriginSuffix     = ".queueOrigin"
-	chainIDSuffix         = ".chainID"
-	contractWriteSuffix   = ".writeDeploymentAddrPath"
 )
 
 // TxParams holds the parameters for a given transaction
@@ -111,9 +82,7 @@ type TxParams struct {
 
 // NewConfig returns a new tx spammer config
 func NewTxParams() ([]TxParams, error) {
-	viper.BindEnv("eth.txs", ETH_TX_LIST)
-	viper.BindEnv("eth.addrLogPath", ETH_ADDR_LOG)
-
+	bindEnv()
 	addrLogPath := viper.GetString("eth.addrLogPath")
 	txs := viper.GetStringSlice("eth.txs")
 	txParams := make([]TxParams, len(txs))

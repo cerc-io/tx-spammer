@@ -14,37 +14,44 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package manual
+package auto
 
 import (
+	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/sirupsen/logrus"
 	"github.com/vulcanize/tx_spammer/pkg/shared"
 )
 
-type Spammer struct {
-	Sender *TxSender
+// EthSender sends eth value transfer txs
+type EthSender struct {
+	client *rpc.Client
 }
 
-func NewTxSpammer(params []TxParams) shared.Service {
-	return &Spammer{
-		Sender: NewTxSender(params),
+// NewEthSender returns a new EthSender
+func NewEthSender(config *Config) *EthSender {
+	return &EthSender{
+		client: config.Client,
 	}
 }
 
-func (s *Spammer) Loop(quitChan <-chan bool) (<-chan bool, error) {
-	forwardQuit := make(chan bool)
-	doneChan, errChan := s.Sender.Send(forwardQuit)
+// Send awaits txs off the provided work queue and sends them
+func (s *EthSender) Send(quitChan <-chan bool, txRlpChan <-chan []byte) (<-chan bool, <-chan error) {
+	// err channel returned to calling context
+	errChan := make(chan error)
+	doneChan := make(chan bool)
 	go func() {
+		defer close(doneChan)
 		for {
 			select {
-			case err := <-errChan:
-				logrus.Error(err)
-			case forwardQuit <- <-quitChan:
-				return
-			case <-doneChan:
+			case tx := <-txRlpChan:
+				if err := shared.SendRawTransaction(s.client, tx); err != nil {
+					errChan <- err
+				}
+			case <-quitChan:
+				logrus.Info("quitting Send loop")
 				return
 			}
 		}
 	}()
-	return doneChan, nil
+	return doneChan, errChan
 }

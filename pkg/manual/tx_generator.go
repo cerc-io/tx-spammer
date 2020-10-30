@@ -17,19 +17,14 @@
 package manual
 
 import (
+	"errors"
 	"fmt"
-	"github.com/vulcanize/tx_spammer/pkg/shared"
-	"os"
 	"sync/atomic"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
-)
-
-const (
-	defaultDeploymentAddrLogPathPrefix = "./accounts/addresses/"
+	"github.com/vulcanize/tx_spammer/pkg/shared"
 )
 
 // TxGenerator generates and signs txs
@@ -54,7 +49,9 @@ func NewTxGenerator(params []TxParams) *TxGenerator {
 func (tg TxGenerator) GenerateTx(params TxParams) ([]byte, error) {
 	tx := make([]byte, 0)
 	switch params.Type {
-	case shared.Standard, shared.OptimismL1ToL2, shared.OptimismL2:
+	case shared.OptimismL2:
+		return tg.genL2(params)
+	case shared.Standard:
 		return tg.gen(params)
 	case shared.EIP1559:
 		return tg.gen1559(params)
@@ -64,19 +61,19 @@ func (tg TxGenerator) GenerateTx(params TxParams) ([]byte, error) {
 	return tx, nil
 }
 
-func (gen TxGenerator) gen(params TxParams) ([]byte, error) {
+func (gen TxGenerator) genL2(params TxParams) ([]byte, error) {
 	nonce := atomic.AddUint64(gen.nonces[params.Sender], 1)
 	tx := new(types.Transaction)
 	if params.To == nil {
 		tx = types.NewContractCreation(nonce, params.Amount, params.GasLimit, params.GasPrice, params.Data, params.L1SenderAddr, params.L1RollupTxId, params.QueueOrigin)
-		if err := writeContractAddr(params.ContractAddrWritePath, params.Sender, nonce); err != nil {
+		if _, err := shared.WriteContractAddr(params.ContractAddrWritePath, params.Sender, nonce); err != nil {
 			return nil, err
 		}
 
 	} else {
 		tx = types.NewTransaction(nonce, *params.To, params.Amount, params.GasLimit, params.GasPrice, params.Data, params.L1SenderAddr, params.L1RollupTxId, params.QueueOrigin, params.SigHashType)
 	}
-	signer, err := shared.TxSigner(params.Type, params.ChainID)
+	signer, err := shared.TxSigner(shared.OptimismL2, params.ChainID)
 	if err != nil {
 		return nil, err
 	}
@@ -91,22 +88,12 @@ func (gen TxGenerator) gen(params TxParams) ([]byte, error) {
 	return txRlp, nil
 }
 
-func (gen TxGenerator) gen1559(params TxParams) ([]byte, error) {
-	// TODO: support EIP1559; new to make a new major version, vendor it, or release with different pkg name so that we can import both optimism and eip1559 geth
-	return nil, fmt.Errorf("1559 support not yet available")
+func (gen TxGenerator) gen(params TxParams) ([]byte, error) {
+	// TODO: support standard geth
+	return nil, errors.New("L1 support not yet available")
 }
 
-func writeContractAddr(filePath string, senderAddr common.Address, nonce uint64) error {
-	if filePath == "" {
-		filePath = defaultDeploymentAddrLogPathPrefix + senderAddr.Hex()
-	}
-	contractAddr := crypto.CreateAddress(senderAddr, nonce)
-	f, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-	if _, err := f.WriteString(contractAddr.Hex() + "\n"); err != nil {
-		return err
-	}
-	return f.Close()
+func (gen TxGenerator) gen1559(params TxParams) ([]byte, error) {
+	// TODO: support EIP1559
+	return nil, errors.New("1559 support not yet available")
 }

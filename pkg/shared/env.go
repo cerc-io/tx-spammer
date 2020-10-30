@@ -14,37 +14,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package manual
+package shared
 
-import (
-	"github.com/sirupsen/logrus"
-	"github.com/vulcanize/tx_spammer/pkg/shared"
+const (
+	DefaultDeploymentAddrLogPathPrefix = "./accounts/addresses/"
 )
-
-type Spammer struct {
-	Sender *TxSender
-}
-
-func NewTxSpammer(params []TxParams) shared.Service {
-	return &Spammer{
-		Sender: NewTxSender(params),
-	}
-}
-
-func (s *Spammer) Loop(quitChan <-chan bool) (<-chan bool, error) {
-	forwardQuit := make(chan bool)
-	doneChan, errChan := s.Sender.Send(forwardQuit)
-	go func() {
-		for {
-			select {
-			case err := <-errChan:
-				logrus.Error(err)
-			case forwardQuit <- <-quitChan:
-				return
-			case <-doneChan:
-				return
-			}
-		}
-	}()
-	return doneChan, nil
-}
