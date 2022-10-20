@@ -1,36 +1,30 @@
 [eth]
-    keyDirPath = "" # path to the directory with all of the key pairs to use - env: $ETH_KEY_DIR_PATH
-    httpPath = "" # http url for the node we wish to send all our transactions to - env: $ETH_HTTP_PATH
-    chainID = 421 # chain id - env: $ETH_CHAIN_ID
-    type = "L2" # tx type (EIP1559, Standard, or L2) - env: $ETH_TX_TYPE
+    keyDirPath = "./keys/" # path to the directory with all of the key pairs to use - env: $ETH_KEY_DIR_PATH
+    httpPath = "http://localhost:8545" # http url for the node we wish to send all our transactions to - env: $ETH_HTTP_PATH
 
 [deployment]
     number = 1 # number of contracts we will deploy for each key at keyPath - env: $ETH_DEPLOYMENT_NUMBER
-    hexData = "" # hex data for the contracts we will deploy - env: $ETH_DEPLOYMENT_HEX_DATA
-    gasLimit = 0 # gasLimit to use for the deployment txs - env: $ETH_DEPLOYMENT_GAS_LIMIT
-    gasPrice = "0" # gasPrice to use for the deployment txs - env: $ETH_DEPLOYMENT_GAS_PRICE
-
-[optimism]
-    l1Sender = "" # l1 sender address hex to use for all txs - env: $ETH_OPTIMISM_L1_SENDER
-    l1RollupTxId = 0 # rollup tx id to use for all txs - env: $ETH_OPTIMISM_ROLLUP_TX_ID
-    sigHashType = 0 # sig hash type to use for all txs - env: $ETH_OPTIMISM_SIG_HASH_TYPE
-    queueOrigin = 0 # queue origin id to use for all txs - env: $ETH_OPTIMISM_QUEUE_ORIGIN
+    hexData = "608060405234801561001057600080fd5b50336000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055506103cc806100606000396000f3fe608060405234801561001057600080fd5b50600436106100415760003560e01c80632802348a1461004657806343d726d614610062578063b90d3d0c1461006c575b600080fd5b610060600480360381019061005b919061025c565b61009c565b005b61006a6100e4565b005b6100866004803603810190610081919061029c565b6101ab565b60405161009391906102d8565b60405180910390f35b80600160008473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff168152602001908152602001600020819055505050565b60008054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff1614610172576040517f08c379a000000000000000000000000000000000000000000000000000000000815260040161016990610376565b60405180910390fd5b60008054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16ff5b60016020528060005260406000206000915090505481565b600080fd5b600073ffffffffffffffffffffffffffffffffffffffff82169050919050565b60006101f3826101c8565b9050919050565b610203816101e8565b811461020e57600080fd5b50565b600081359050610220816101fa565b92915050565b6000819050919050565b61023981610226565b811461024457600080fd5b50565b60008135905061025681610230565b92915050565b60008060408385031215610273576102726101c3565b5b600061028185828601610211565b925050602061029285828601610247565b9150509250929050565b6000602082840312156102b2576102b16101c3565b5b60006102c084828501610211565b91505092915050565b6102d281610226565b82525050565b60006020820190506102ed60008301846102c9565b92915050565b600082825260208201905092915050565b7f4f6e6c79206f776e65722063616e2063616c6c20746869732066756e6374696f60008201527f6e2e000000000000000000000000000000000000000000000000000000000000602082015250565b60006103606022836102f3565b915061036b82610304565b604082019050919050565b6000602082019050818103600083015261038f81610353565b905091905056fea26469706673582212201d7a5e3145cb5b1067ff7c8bb867ec5228d0645ac9eea2ad26735c9b2ad33cd764736f6c63430008110033" # hex data for the contracts we will deploy - env: $ETH_DEPLOYMENT_HEX_DATA
+    gasLimit = 100000 # gasLimit to use for the deployment txs - env: $ETH_DEPLOYMENT_GAS_LIMIT
+    gasTipCap = "1000000000" # gasTipCap to use for the deployment txs - env: $ETH_DEPLOYMENT_GAS_TIP_CAP
+    gasFeeCap = "1000000007" # gasFeeCap to use for the deployment txs - env: $ETH_DEPLOYMENT_GAS_FEE_CAP
 
 [contractSpammer]
-    frequency = 30 # how often to send a transaction (in seconds) - env: $ETH_CALL_FREQ
-    totalNumber = 10000 # total number of transactions to send (per sender) - env: $ETH_CALL_TOTAL_NUMBER
-    abiPath = "" # path to the abi file for the contract we are calling - env: $ETH_CALL_ABI_PATH
+    frequency = 10 # how often to send a transaction (in milliseconds) - env: $ETH_CALL_FREQ
+    totalNumber = 1000 # total number of transactions to send (per sender) - env: $ETH_CALL_TOTAL_NUMBER
+    abiPath = "sol/build/Test.abi" # path to the abi file for the contract we are calling - env: $ETH_CALL_ABI_PATH
     # NOTE: we expect to be calling a method such as Put(address addr, uint256 val) where the first argument is an
     # integer than we can increment to store values at new locations in the contract trie (to grow it) and
     # the second argument is an integer value that we store at these positions
     methodName = "Put" # the method name we are calling - env: $ETH_CALL_METHOD_NAME
-    storageValue =  1337 # the value we store at each position - env: $ETH_CALL_STORAGE_VALUE
-    gasLimit = 0 # gasLimit to use for the eth call txs - env: $ETH_CALL_GAS_LIMIT
-    gasPrice = "0" # gasPrice to use for the eth call txs - env: $ETH_CALL_GAS_PRICE
+    gasLimit = 21000 # gasLimit to use for the eth call txs - env: $ETH_CALL_GAS_LIMIT
+    gasTipCap = "1000000000" # gasTipCap to use for the eth call txs - env: $ETH_CALL_GAS_TIP_CAP
+    gasFeeCap = "1000000007" # gasFeeCap to use for the eth call txs - env: $ETH_CALL_GAS_FEE_CAP
 
 [sendSpammer]
-    frequency = 30 # how often to send a transaction (in seconds) - env: $ETH_SEND_FREQ
-    totalNumber = 10000 # total number of transactions to send (per sender) - env: $ETH_SEND_TOTAL_NUMBER
-    amount = "1" # amount of wei (1x10^-18 ETH) to send in each tx (be mindful of the genesis allocations) - env: $ETH_SEND_AMOUNT
-    gasLimit = 0 # gasLimit to use for the eth transfer txs - env: $ETH_SEND_GAS_LIMIT
-    gasPrice = "0" # gasPrice to use for the eth transfer txs - env: $ETH_SEND_GAS_PRICE
+    frequency = 100 # how often to send a transaction (in milliseconds) - env: $ETH_SEND_FREQ
+    totalNumber = 1000 # total number of transactions to send (per sender) - env: $ETH_SEND_TOTAL_NUMBER
+    amount = "10000" # amount of wei (1x10^-18 ETH) to send in each tx (be mindful of the genesis allocations) - env: $ETH_SEND_AMOUNT
+    gasLimit = 21000 # gasLimit to use for the eth transfer txs - env: $ETH_SEND_GAS_LIMIT
+    gasTipCap = "1000000000" # gasTipCap to use for the eth transfer txs - env: $ETH_SEND_GAS_TIP_CAP
+    gasFeeCap = "1000000007" # gasFeeCap to use for the eth transfer txs - env: $ETH_SEND_GAS_FEE_CAP

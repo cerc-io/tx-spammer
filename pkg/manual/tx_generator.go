@@ -17,8 +17,6 @@
 package manual
 
 import (
-	"errors"
-	"fmt"
 	"sync/atomic"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -46,34 +44,39 @@ func NewTxGenerator(params []TxParams) *TxGenerator {
 }
 
 // GenerateTx generates tx from the provided params
-func (tg TxGenerator) GenerateTx(params TxParams) ([]byte, error) {
-	tx := make([]byte, 0)
-	switch params.Type {
-	case shared.OptimismL2:
-		return tg.genL2(params)
-	case shared.Standard:
-		return tg.gen(params)
-	case shared.EIP1559:
-		return tg.gen1559(params)
-	default:
-		return nil, fmt.Errorf("unsupported tx type: %s", params.Type.String())
-	}
-	return tx, nil
-}
-
-func (gen TxGenerator) genL2(params TxParams) ([]byte, error) {
+func (gen TxGenerator) GenerateTx(params TxParams) ([]byte, error) {
 	nonce := atomic.AddUint64(gen.nonces[params.Sender], 1)
 	tx := new(types.Transaction)
 	if params.To == nil {
-		tx = types.NewContractCreation(nonce, params.Amount, params.GasLimit, params.GasPrice, params.Data, params.L1SenderAddr, params.L1RollupTxId, params.QueueOrigin)
+		tx = types.NewTx(
+			&types.DynamicFeeTx{
+				ChainID:   params.ChainID,
+				Nonce:     nonce,
+				Gas:       params.Gas,
+				GasTipCap: params.GasTipCap,
+				GasFeeCap: params.GasFeeCap,
+				To:        nil,
+				Value:     params.Value,
+				Data:      params.Data,
+			})
 		if _, err := shared.WriteContractAddr(params.ContractAddrWritePath, params.Sender, nonce); err != nil {
 			return nil, err
 		}
 
 	} else {
-		tx = types.NewTransaction(nonce, *params.To, params.Amount, params.GasLimit, params.GasPrice, params.Data, params.L1SenderAddr, params.L1RollupTxId, params.QueueOrigin, params.SigHashType)
+		tx = types.NewTx(
+			&types.DynamicFeeTx{
+				ChainID:   params.ChainID,
+				Nonce:     nonce,
+				Gas:       params.Gas,
+				GasTipCap: params.GasTipCap,
+				GasFeeCap: params.GasFeeCap,
+				To:        params.To,
+				Value:     params.Value,
+				Data:      params.Data,
+			})
 	}
-	signer, err := shared.TxSigner(shared.OptimismL2, params.ChainID)
+	signer, err := shared.TxSigner(params.ChainID)
 	if err != nil {
 		return nil, err
 	}
@@ -81,19 +84,9 @@ func (gen TxGenerator) genL2(params TxParams) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	txRlp, err := rlp.EncodeToBytes(signedTx)
+	rawTx, err := rlp.EncodeToBytes(signedTx)
 	if err != nil {
 		return nil, err
 	}
-	return txRlp, nil
-}
-
-func (gen TxGenerator) gen(params TxParams) ([]byte, error) {
-	// TODO: support standard geth
-	return nil, errors.New("L1 support not yet available")
-}
-
-func (gen TxGenerator) gen1559(params TxParams) ([]byte, error) {
-	// TODO: support EIP1559
-	return nil, errors.New("1559 support not yet available")
+	return rawTx, nil
 }

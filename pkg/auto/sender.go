@@ -30,25 +30,27 @@ type EthSender struct {
 // NewEthSender returns a new EthSender
 func NewEthSender(config *Config) *EthSender {
 	return &EthSender{
-		client: config.Client,
+		client: config.RpcClient,
 	}
 }
 
 // Send awaits txs off the provided work queue and sends them
-func (s *EthSender) Send(quitChan <-chan bool, txRlpChan <-chan []byte) (<-chan bool, <-chan error) {
+func (s *EthSender) Send(quitChan <-chan bool, txChan <-chan []byte) (<-chan bool, <-chan error) {
 	// err channel returned to calling context
 	errChan := make(chan error)
 	doneChan := make(chan bool)
 	go func() {
 		defer close(doneChan)
+		counter := 0
 		for {
 			select {
-			case tx := <-txRlpChan:
+			case tx := <-txChan:
+				counter += 1
 				if err := shared.SendRawTransaction(s.client, tx); err != nil {
 					errChan <- err
 				}
 			case <-quitChan:
-				logrus.Info("quitting Send loop")
+				logrus.Infof("quitting Send loop (sent %d)", counter)
 				return
 			}
 		}

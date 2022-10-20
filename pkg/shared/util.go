@@ -18,7 +18,7 @@ package shared
 
 import (
 	"context"
-	"fmt"
+	"github.com/sirupsen/logrus"
 	"math/big"
 	"os"
 
@@ -31,20 +31,14 @@ import (
 )
 
 // ChainConfig returns the appropriate ethereum chain config for the provided chain id
-func TxSigner(kind TxType, chainID uint64) (types.Signer, error) {
-	switch kind {
-	case Standard, EIP1559:
-		return types.NewEIP155Signer(new(big.Int).SetUint64(chainID)), nil
-	case OptimismL2, OptimismL1ToL2:
-		return types.NewOVMSigner(new(big.Int).SetUint64(chainID)), nil
-	default:
-		return nil, fmt.Errorf("chain config for chainid %d not available", chainID)
-	}
+func TxSigner(chainID *big.Int) (types.Signer, error) {
+	return types.NewLondonSigner(chainID), nil
 }
 
 // SendRawTransaction sends a raw, signed tx using the provided client
-func SendRawTransaction(rpcClient *rpc.Client, txRlp []byte) error {
-	return rpcClient.CallContext(context.Background(), nil, "eth_sendRawTransaction", hexutil.Encode(txRlp))
+func SendRawTransaction(rpcClient *rpc.Client, raw []byte) error {
+	logrus.Debug("eth_sendRawTransaction: ", hexutil.Encode(raw))
+	return rpcClient.CallContext(context.Background(), nil, "eth_sendRawTransaction", hexutil.Encode(raw))
 }
 
 // WriteContractAddr appends a contract addr to an out file

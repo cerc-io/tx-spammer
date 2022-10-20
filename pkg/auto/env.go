@@ -22,91 +22,77 @@ const (
 	// env variables
 	ETH_KEY_DIR_PATH = "ETH_KEY_DIR_PATH"
 	ETH_HTTP_PATH    = "ETH_HTTP_PATH"
-	ETH_CHAIN_ID     = "ETH_CHAIN_ID"
-	ETH_TX_TYPE      = "ETH_TX_TYPE"
 
-	ETH_DEPLOYMENT_NUMBER    = "ETH_DEPLOYMENT_NUMBER"
-	ETH_DEPLOYMENT_HEX_DATA  = "ETH_DEPLOYMENT_HEX_DATA"
-	ETH_DEPLOYMENT_GAS_LIMIT = "ETH_DEPLOYMENT_GAS_LIMIT"
-	ETH_DEPLOYMENT_GAS_PRICE = "ETH_DEPLOYMENT_GAS_PRICE"
+	ETH_DEPLOYMENT_NUMBER      = "ETH_DEPLOYMENT_NUMBER"
+	ETH_DEPLOYMENT_HEX_DATA    = "ETH_DEPLOYMENT_HEX_DATA"
+	ETH_DEPLOYMENT_GAS_LIMIT   = "ETH_DEPLOYMENT_GAS_LIMIT"
+	ETH_DEPLOYMENT_GAS_FEE_CAP = "ETH_DEPLOYMENT_GAS_FEE_CAP"
+	ETH_DEPLOYMENT_GAS_TIP_CAP = "ETH_DEPLOYMENT_GAS_TIP_CAP"
 
-	ETH_OPTIMISM_L1_SENDER     = "ETH_OPTIMISM_L1_SENDER"
-	ETH_OPTIMISM_ROLLUP_TX_ID  = "ETH_OPTIMISM_ROLLUP_TX_ID"
-	ETH_OPTIMISM_SIG_HASH_TYPE = "ETH_OPTIMISM_SIG_HASH_TYPE"
-	ETH_OPTIMISM_QUEUE_ORIGIN  = "ETH_OPTIMISM_QUEUE_ORIGIN"
-
-	ETH_CALL_FREQ          = "ETH_CALL_FREQ"
-	ETH_CALL_TOTAL_NUMBER  = "ETH_CALL_TOTAL_NUMBER"
-	ETH_CALL_ABI_PATH      = "ETH_CALL_ABI_PATH"
-	ETH_CALL_METHOD_NAME   = "ETH_CALL_METHOD_NAME"
-	ETH_CALL_STORAGE_VALUE = "ETH_CALL_STORAGE_VALUE"
-	ETH_CALL_GAS_LIMIT     = "ETH_CALL_GAS_LIMIT"
-	ETH_CALL_GAS_PRICE     = "ETH_CALL_GAS_PRICE"
+	ETH_CALL_FREQ         = "ETH_CALL_FREQ"
+	ETH_CALL_TOTAL_NUMBER = "ETH_CALL_TOTAL_NUMBER"
+	ETH_CALL_ABI_PATH     = "ETH_CALL_ABI_PATH"
+	ETH_CALL_METHOD_NAME  = "ETH_CALL_METHOD_NAME"
+	ETH_CALL_GAS_LIMIT    = "ETH_CALL_GAS_LIMIT"
+	ETH_CALL_GAS_FEE_CAP  = "ETH_CALL_GAS_FEE_CAP"
+	ETH_CALL_GAS_TIP_CAP  = "ETH_CALL_GAS_TIP_CAP"
 
 	ETH_SEND_FREQ         = "ETH_SEND_FREQ"
 	ETH_SEND_TOTAL_NUMBER = "ETH_SEND_TOTAL_NUMBER"
 	ETH_SEND_AMOUNT       = "ETH_SEND_AMOUNT"
 	ETH_SEND_GAS_LIMIT    = "ETH_SEND_GAS_LIMIT"
-	ETH_SEND_GAS_PRICE    = "ETH_SEND_GAS_PRICE"
+	ETH_SEND_GAS_FEE_CAP  = "ETH_SEND_GAS_FEE_CAP"
+	ETH_SEND_GAS_TIP_CAP  = "ETH_SEND_GAS_TIP_CAP"
 
 	// toml bindings
 	ethKeyDirPath = "eth.keyDirPath"
 	ethHttpPath   = "eth.httpPath"
-	ethChainID    = "eth.chainID"
-	ethType       = "eth.type"
 
-	ethDeploymentNumber   = "deployment.number"
-	ethDeploymentData     = "deployment.hexData"
-	ethDeploymentGasPrice = "deployment.gasPrice"
-	ethDeploymentGasLimit = "deployment.gasLimit"
+	ethDeploymentNumber    = "deployment.number"
+	ethDeploymentData      = "deployment.hexData"
+	ethDeploymentGasLimit  = "deployment.gasLimit"
+	ethDeploymentGasFeeCap = "deployment.gasFeeCap"
+	ethDeploymentGasTipCap = "deployment.gasTipCap"
 
-	ethOptimismL1Sender    = "optimism.l1Sender"
-	ethOptimismRollupTxID  = "optimism.l1RollupTxId"
-	ethOptimismSigHashType = "optimism.sigHashType"
-	ethOptimismQueueOrigin = "optimism.queueOrigin"
-
-	ethCallFrequency    = "contractSpammer.frequency"
-	ethCallTotalNumber  = "contractSpammer.totalNumber"
-	ethCallABIPath      = "contractSpammer.abiPath"
-	ethCallMethodName   = "contractSpammer.methodName"
-	ethCallStorageValue = "contractSpammer.storageValue"
-	ethCallGasLimit     = "contractSpammer.gasLimit"
-	ethCallGasPrice     = "contractSpammer.gasPrice"
+	ethCallFrequency   = "contractSpammer.frequency"
+	ethCallTotalNumber = "contractSpammer.totalNumber"
+	ethCallABIPath     = "contractSpammer.abiPath"
+	ethCallMethodName  = "contractSpammer.methodName"
+	ethCallGasLimit    = "contractSpammer.gasLimit"
+	ethCallGasFeeCap   = "contractSpammer.gasFeeCap"
+	ethCallGasTipCap   = "contractSpammer.gasTipCap"
 
 	ethSendFrequency   = "sendSpammer.frequency"
 	ethSendTotalNumber = "sendSpammer.totalNumber"
 	ethSendAmount      = "sendSpammer.amount"
 	ethSendGasLimit    = "sendSpammer.gasLimit"
-	ethSendGasPrice    = "sendSpammer.gasPrice"
+	ethSendGasFeeCap   = "sendSpammer.gasFeeCap"
+	ethSendGasTipCap   = "sendSpammer.gasTipCap"
 )
 
 func bindEnv() {
 	viper.BindEnv(ethKeyDirPath, ETH_KEY_DIR_PATH)
 	viper.BindEnv(ethHttpPath, ETH_HTTP_PATH)
-	viper.BindEnv(ethType, ETH_TX_TYPE)
-	viper.BindEnv(ethChainID, ETH_CHAIN_ID)
-
-	viper.BindEnv(ethOptimismL1Sender, ETH_OPTIMISM_L1_SENDER)
-	viper.BindEnv(ethOptimismQueueOrigin, ETH_OPTIMISM_QUEUE_ORIGIN)
-	viper.BindEnv(ethOptimismRollupTxID, ETH_OPTIMISM_ROLLUP_TX_ID)
-	viper.BindEnv(ethOptimismSigHashType, ETH_OPTIMISM_SIG_HASH_TYPE)
 
 	viper.BindEnv(ethDeploymentNumber, ETH_DEPLOYMENT_NUMBER)
 	viper.BindEnv(ethDeploymentData, ETH_DEPLOYMENT_HEX_DATA)
 	viper.BindEnv(ethDeploymentGasLimit, ETH_DEPLOYMENT_GAS_LIMIT)
-	viper.BindEnv(ethDeploymentGasPrice, ETH_DEPLOYMENT_GAS_PRICE)
+	viper.BindEnv(ethDeploymentGasFeeCap, ETH_DEPLOYMENT_GAS_FEE_CAP)
+	viper.BindEnv(ethDeploymentGasTipCap, ETH_DEPLOYMENT_GAS_TIP_CAP)
 
 	viper.BindEnv(ethCallABIPath, ETH_CALL_ABI_PATH)
 	viper.BindEnv(ethCallFrequency, ETH_CALL_FREQ)
 	viper.BindEnv(ethCallGasLimit, ETH_CALL_GAS_LIMIT)
-	viper.BindEnv(ethCallGasPrice, ETH_CALL_GAS_PRICE)
+	viper.BindEnv(ethCallGasFeeCap, ETH_CALL_GAS_FEE_CAP)
+	viper.BindEnv(ethCallGasTipCap, ETH_CALL_GAS_TIP_CAP)
 	viper.BindEnv(ethCallMethodName, ETH_CALL_METHOD_NAME)
-	viper.BindEnv(ethCallStorageValue, ETH_CALL_STORAGE_VALUE)
 	viper.BindEnv(ethCallTotalNumber, ETH_CALL_TOTAL_NUMBER)
 
 	viper.BindEnv(ethSendFrequency, ETH_SEND_FREQ)
 	viper.BindEnv(ethSendTotalNumber, ETH_SEND_TOTAL_NUMBER)
 	viper.BindEnv(ethSendAmount, ETH_SEND_AMOUNT)
 	viper.BindEnv(ethSendGasLimit, ETH_SEND_GAS_LIMIT)
-	viper.BindEnv(ethSendGasPrice, ETH_SEND_GAS_PRICE)
+	viper.BindEnv(ethSendGasFeeCap, ETH_SEND_GAS_FEE_CAP)
+	viper.BindEnv(ethSendGasTipCap, ETH_SEND_GAS_TIP_CAP)
+	viper.BindEnv(ethSendGasLimit, ETH_CALL_GAS_LIMIT)
 }

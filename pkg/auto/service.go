@@ -50,31 +50,56 @@ func (s *Spammer) Loop(quitChan <-chan bool) (<-chan bool, error) {
 	genQuit := make(chan bool)
 	senderQuit := make(chan bool)
 	doneChan := make(chan bool)
-	genDoneChan, txRlpChan, genErrChan := s.TxGenerator.GenerateTxs(genQuit, contractAddrs)
-	sendDoneChan, sendErrChan := s.Sender.Send(senderQuit, txRlpChan)
+
+	s.config.CallConfig.ContractAddrs = contractAddrs
+	genDoneChan, txChan, genErrChan := s.TxGenerator.GenerateTxs(genQuit)
+	sendDoneChan, sendErrChan := s.Sender.Send(senderQuit, txChan)
+
 	go func() {
 		defer close(doneChan)
 		for {
 			select {
 			case err := <-genErrChan:
 				logrus.Errorf("tx generation error: %v", err)
-				close(genQuit)
+				recoverClose(genQuit)
 				<-genDoneChan
-				close(senderQuit)
+				recoverClose(senderQuit)
 			case err := <-sendErrChan:
 				logrus.Errorf("tx sending error: %v", err)
-				close(genQuit)
+				recoverClose(genQuit)
 				<-genDoneChan
-				close(senderQuit)
+				recoverClose(senderQuit)
 			case <-quitChan:
-				logrus.Error("shutting down tx spammer")
-				close(genQuit)
+				logrus.Info("shutting down tx spammer")
+				recoverClose(genQuit)
 				<-genDoneChan
-				close(senderQuit)
+				recoverClose(senderQuit)
 			case <-sendDoneChan:
 				return
+			case <-genDoneChan:
+				recoverClose(senderQuit)
 			}
 		}
 	}()
 	return doneChan, nil
+}
+
+func recoverSend(ch chan bool, value bool) {
+	defer func() {
+		if recover() != nil {
+		}
+	}()
+
+	ch <- value
+}
+
+func recoverClose(ch chan bool) (justClosed bool) {
+	defer func() {
+		if recover() != nil {
+			justClosed = false
+		}
+	}()
+
+	close(ch)
+	return true
 }
