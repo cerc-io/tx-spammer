@@ -36,7 +36,7 @@ func NewEthSender(config *Config) *EthSender {
 }
 
 // Send awaits txs off the provided work queue and sends them
-func (s *EthSender) Send(quitChan <-chan bool, txChan <-chan *types.Transaction) (<-chan bool, <-chan error) {
+func (s *EthSender) Send(quitChan <-chan bool, txChan <-chan *types.Transaction, sentCh chan *types.Transaction) (<-chan bool, <-chan error) {
 	// err channel returned to calling context
 	errChan := make(chan error)
 	doneChan := make(chan bool)
@@ -49,6 +49,8 @@ func (s *EthSender) Send(quitChan <-chan bool, txChan <-chan *types.Transaction)
 				counter += 1
 				if err := shared.SendTransaction(s.client, tx); err != nil {
 					errChan <- err
+				} else {
+					sentCh <- tx
 				}
 			case <-quitChan:
 				logrus.Infof("quitting Send loop (sent %d)", counter)

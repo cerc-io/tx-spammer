@@ -50,10 +50,12 @@ func (s *Spammer) Loop(quitChan <-chan bool) (<-chan bool, error) {
 	genQuit := make(chan bool)
 	senderQuit := make(chan bool)
 	doneChan := make(chan bool)
+	watcher := NewTxWatcher(s.config.EthClient)
+	watcher.Start()
 
 	s.config.CallConfig.ContractAddrs = contractAddrs
 	genDoneChan, txChan, genErrChan := s.TxGenerator.GenerateTxs(genQuit)
-	sendDoneChan, sendErrChan := s.Sender.Send(senderQuit, txChan)
+	sendDoneChan, sendErrChan := s.Sender.Send(senderQuit, txChan, watcher.PendingTxCh)
 
 	go func() {
 		defer close(doneChan)
@@ -64,17 +66,24 @@ func (s *Spammer) Loop(quitChan <-chan bool) (<-chan bool, error) {
 				recoverClose(genQuit)
 				<-genDoneChan
 				recoverClose(senderQuit)
+				<-sendDoneChan
+				recoverClose(watcher.quitCh)
 			case err := <-sendErrChan:
 				logrus.Errorf("tx sending error: %v", err)
 				recoverClose(genQuit)
 				<-genDoneChan
 				recoverClose(senderQuit)
+				<-sendDoneChan
+				recoverClose(watcher.quitCh)
 			case <-quitChan:
 				logrus.Info("shutting down tx spammer")
 				recoverClose(genQuit)
 				<-genDoneChan
 				recoverClose(senderQuit)
+				<-sendDoneChan
+				recoverClose(watcher.quitCh)
 			case <-sendDoneChan:
+				recoverClose(watcher.quitCh)
 				return
 			case <-genDoneChan:
 				recoverClose(senderQuit)
@@ -82,15 +91,6 @@ func (s *Spammer) Loop(quitChan <-chan bool) (<-chan bool, error) {
 		}
 	}()
 	return doneChan, nil
-}
-
-func recoverSend(ch chan bool, value bool) {
-	defer func() {
-		if recover() != nil {
-		}
-	}()
-
-	ch <- value
 }
 
 func recoverClose(ch chan bool) (justClosed bool) {

@@ -19,6 +19,7 @@ package auto
 import (
 	"context"
 	"crypto/ecdsa"
+	"github.com/ethereum/go-ethereum/crypto"
 	log "github.com/sirupsen/logrus"
 	"math/big"
 	"math/rand"
@@ -79,7 +80,7 @@ func (gen *TxGenerator) GenerateTxs(quitChan <-chan bool) (<-chan bool, <-chan *
 	errChan := make(chan error)
 	wg := new(sync.WaitGroup)
 	for i, sender := range gen.config.SenderKeys {
-		if len(gen.config.SendConfig.DestinationAddresses) > 0 {
+		if gen.config.SendConfig.TotalNumber > 0 {
 			wg.Add(1)
 			go gen.genSends(wg, txChan, errChan, quitChan, sender, gen.config.SenderAddrs[i], gen.config.SendConfig)
 		}
@@ -99,9 +100,10 @@ func (gen *TxGenerator) GenerateTxs(quitChan <-chan bool) (<-chan bool, <-chan *
 func (gen *TxGenerator) genSends(wg *sync.WaitGroup, txChan chan<- *types.Transaction, errChan chan<- error, quitChan <-chan bool, senderKey *ecdsa.PrivateKey, senderAddr common.Address, sendConfig *SendConfig) {
 	defer wg.Done()
 	ticker := time.NewTicker(sendConfig.Frequency)
-	for _, dst := range sendConfig.DestinationAddresses {
+	for i := 0; i < sendConfig.TotalNumber; i++ {
 		select {
 		case <-ticker.C:
+			dst := crypto.CreateAddress(receiverAddressSeed, uint64(i))
 			log.Debugf("Generating send from %s to %s.", senderAddr.Hex(), dst.Hex())
 			rawTx, _, err := gen.GenerateTx(&GenParams{
 				ChainID:   sendConfig.ChainID,

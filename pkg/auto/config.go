@@ -68,9 +68,6 @@ type Config struct {
 
 	// Configuration for the eth transfer txs
 	SendConfig *SendConfig
-
-	// Configuration for EIP1559
-	EIP1559Config *EIP1559Config
 }
 
 // DeploymentConfig holds the parameters for the contract deployment contracts
@@ -108,12 +105,9 @@ type SendConfig struct {
 	GasTipCap *big.Int
 	Amount    *big.Int
 
-	DestinationAddresses []common.Address
-	Frequency            time.Duration
+	Frequency   time.Duration
+	TotalNumber int
 }
-
-// todo: EIP1559Config
-type EIP1559Config struct{}
 
 func NewConfig() (*Config, error) {
 	// Initialize rpc client
@@ -232,6 +226,15 @@ func NewCallConfig(chainID *big.Int) (*CallConfig, error) {
 	if !exist {
 		return nil, fmt.Errorf("method '%s' not found in provided abi", methodName)
 	}
+
+	var frequency time.Duration
+	tmpFreq := viper.GetInt(ethCallFrequency)
+	if tmpFreq <= 0 {
+		frequency = time.Microsecond
+	} else {
+		frequency = viper.GetDuration(ethCallFrequency) * time.Millisecond
+	}
+
 	return &CallConfig{
 		ChainID:     chainID,
 		GasLimit:    viper.GetUint64(ethCallGasLimit),
@@ -239,7 +242,7 @@ func NewCallConfig(chainID *big.Int) (*CallConfig, error) {
 		GasTipCap:   big.NewInt(viper.GetInt64(ethCallGasTipCap)),
 		MethodName:  methodName,
 		ABI:         parsedABI,
-		Frequency:   viper.GetDuration(ethCallFrequency) * time.Millisecond,
+		Frequency:   frequency,
 		TotalNumber: viper.GetInt(ethCallTotalNumber),
 	}, nil
 }
@@ -251,18 +254,22 @@ func NewSendConfig(chainID *big.Int) (*SendConfig, error) {
 	if !ok {
 		return nil, fmt.Errorf("unable to convert amount string (%s) into big.Int", amountStr)
 	}
-	number := viper.GetUint64(ethSendTotalNumber)
-	addrs := make([]common.Address, number)
-	for i := uint64(0); i < number; i++ {
-		addrs[i] = crypto.CreateAddress(receiverAddressSeed, i)
+
+	var frequency time.Duration
+	tmpFreq := viper.GetInt(ethCallFrequency)
+	if tmpFreq <= 0 {
+		frequency = time.Microsecond
+	} else {
+		frequency = viper.GetDuration(ethCallFrequency) * time.Millisecond
 	}
+
 	return &SendConfig{
-		ChainID:              chainID,
-		DestinationAddresses: addrs,
-		Frequency:            viper.GetDuration(ethSendFrequency) * time.Millisecond,
-		Amount:               amount,
-		GasLimit:             viper.GetUint64(ethSendGasLimit),
-		GasFeeCap:            big.NewInt(viper.GetInt64(ethSendGasFeeCap)),
-		GasTipCap:            big.NewInt(viper.GetInt64(ethSendGasTipCap)),
+		ChainID:     chainID,
+		Frequency:   frequency,
+		Amount:      amount,
+		GasLimit:    viper.GetUint64(ethSendGasLimit),
+		GasFeeCap:   big.NewInt(viper.GetInt64(ethSendGasFeeCap)),
+		GasTipCap:   big.NewInt(viper.GetInt64(ethSendGasTipCap)),
+		TotalNumber: viper.GetInt(ethSendTotalNumber),
 	}, nil
 }

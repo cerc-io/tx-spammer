@@ -10,8 +10,8 @@
     gasFeeCap = "1000000007" # gasFeeCap to use for the deployment txs - env: $ETH_DEPLOYMENT_GAS_FEE_CAP
 
 [contractSpammer]
-    frequency = 10 # how often to send a transaction (in milliseconds) - env: $ETH_CALL_FREQ
-    totalNumber = 5000 # total number of transactions to send (per sender) - env: $ETH_CALL_TOTAL_NUMBER
+    frequency = 0 # how often to send a transaction (in milliseconds) - env: $ETH_CALL_FREQ
+    totalNumber = 500000 # total number of transactions to send (per sender) - env: $ETH_CALL_TOTAL_NUMBER
     abiPath = "sol/build/Test.abi" # path to the abi file for the contract we are calling - env: $ETH_CALL_ABI_PATH
     # NOTE: we expect to be calling a method such as Put(address addr, uint256 val) where the first argument is an
     # integer than we can increment to store values at new locations in the contract trie (to grow it) and
@@ -22,8 +22,8 @@
     gasFeeCap = "1000000007" # gasFeeCap to use for the eth call txs - env: $ETH_CALL_GAS_FEE_CAP
 
 [sendSpammer]
-    frequency = 50 # how often to send a transaction (in milliseconds) - env: $ETH_SEND_FREQ
-    totalNumber = 1000 # total number of transactions to send (per sender) - env: $ETH_SEND_TOTAL_NUMBER
+    frequency = 0 # how often to send a transaction (in milliseconds) - env: $ETH_SEND_FREQ
+    totalNumber = 100000 # total number of transactions to send (per sender) - env: $ETH_SEND_TOTAL_NUMBER
     amount = "10000" # amount of wei (1x10^-18 ETH) to send in each tx (be mindful of the genesis allocations) - env: $ETH_SEND_AMOUNT
     gasLimit = 21000 # gasLimit to use for the eth transfer txs - env: $ETH_SEND_GAS_LIMIT
     gasTipCap = "1000000000" # gasTipCap to use for the eth transfer txs - env: $ETH_SEND_GAS_TIP_CAP
