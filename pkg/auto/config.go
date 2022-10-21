@@ -165,10 +165,7 @@ func NewConfig() (*Config, error) {
 	}
 
 	// Load signer
-	signer, err := shared.TxSigner(chainID)
-	if err != nil {
-		return nil, err
-	}
+	signer := shared.TxSigner(chainID)
 
 	// Load deployment config
 	deploymentConfig, err := NewDeploymentConfig(chainID)

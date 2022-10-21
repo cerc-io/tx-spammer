@@ -19,7 +19,6 @@ package auto
 import (
 	"context"
 	"crypto/ecdsa"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	log "github.com/sirupsen/logrus"
 	"math/big"
 	"math/rand"
@@ -75,8 +74,8 @@ type GenParams struct {
 	Data      []byte
 }
 
-func (gen *TxGenerator) GenerateTxs(quitChan <-chan bool) (<-chan bool, <-chan []byte, <-chan error) {
-	txChan := make(chan []byte)
+func (gen *TxGenerator) GenerateTxs(quitChan <-chan bool) (<-chan bool, <-chan *types.Transaction, <-chan error) {
+	txChan := make(chan *types.Transaction)
 	errChan := make(chan error)
 	wg := new(sync.WaitGroup)
 	for i, sender := range gen.config.SenderKeys {
@@ -97,13 +96,13 @@ func (gen *TxGenerator) GenerateTxs(quitChan <-chan bool) (<-chan bool, <-chan [
 	return doneChan, txChan, errChan
 }
 
-func (gen *TxGenerator) genSends(wg *sync.WaitGroup, txChan chan<- []byte, errChan chan<- error, quitChan <-chan bool, senderKey *ecdsa.PrivateKey, senderAddr common.Address, sendConfig *SendConfig) {
+func (gen *TxGenerator) genSends(wg *sync.WaitGroup, txChan chan<- *types.Transaction, errChan chan<- error, quitChan <-chan bool, senderKey *ecdsa.PrivateKey, senderAddr common.Address, sendConfig *SendConfig) {
 	defer wg.Done()
 	ticker := time.NewTicker(sendConfig.Frequency)
 	for _, dst := range sendConfig.DestinationAddresses {
 		select {
 		case <-ticker.C:
-			log.Infof("Generating send from %s to %s.", senderAddr.Hex(), dst.Hex())
+			log.Debugf("Generating send from %s to %s.", senderAddr.Hex(), dst.Hex())
 			rawTx, _, err := gen.GenerateTx(&GenParams{
 				ChainID:   sendConfig.ChainID,
 				To:        &dst,
@@ -126,14 +125,14 @@ func (gen *TxGenerator) genSends(wg *sync.WaitGroup, txChan chan<- []byte, errCh
 	log.Info("Done generating sends for ", senderAddr.Hex())
 }
 
-func (gen *TxGenerator) genCalls(wg *sync.WaitGroup, txChan chan<- []byte, errChan chan<- error, quitChan <-chan bool, senderKey *ecdsa.PrivateKey, senderAddr common.Address, callConfig *CallConfig) {
+func (gen *TxGenerator) genCalls(wg *sync.WaitGroup, txChan chan<- *types.Transaction, errChan chan<- error, quitChan <-chan bool, senderKey *ecdsa.PrivateKey, senderAddr common.Address, callConfig *CallConfig) {
 	defer wg.Done()
 	ticker := time.NewTicker(callConfig.Frequency)
 	for i := 0; i < callConfig.TotalNumber; i++ {
 		select {
 		case <-ticker.C:
 			contractAddr := callConfig.ContractAddrs[rand.Intn(len(callConfig.ContractAddrs))]
-			log.Infof("Generating call from %s to %s.", senderAddr.Hex(), contractAddr.Hex())
+			log.Debugf("Generating call from %s to %s.", senderAddr.Hex(), contractAddr.Hex())
 			data, err := callConfig.ABI.Pack(callConfig.MethodName, contractAddr, big.NewInt(time.Now().UnixNano()))
 			if err != nil {
 				errChan <- err
@@ -161,7 +160,7 @@ func (gen *TxGenerator) genCalls(wg *sync.WaitGroup, txChan chan<- []byte, errCh
 }
 
 // GenerateTx generates tx from the provided params
-func (gen *TxGenerator) GenerateTx(params *GenParams) ([]byte, common.Address, error) {
+func (gen *TxGenerator) GenerateTx(params *GenParams) (*types.Transaction, common.Address, error) {
 	nonce := gen.claimNonce(params.Sender)
 	tx := new(types.Transaction)
 	var contractAddr common.Address
@@ -192,17 +191,12 @@ func (gen *TxGenerator) GenerateTx(params *GenParams) ([]byte, common.Address, e
 				Gas:       params.GasLimit,
 				To:        params.To,
 				Value:     params.Amount,
-				Data:      nil,
+				Data:      params.Data,
 			})
 	}
 	signedTx, err := types.SignTx(tx, gen.config.Signer, params.SenderKey)
 	if err != nil {
 		return nil, common.Address{}, err
 	}
-	data, err := signedTx.MarshalBinary()
-	if err != nil {
-		return nil, common.Address{}, err
-	}
-	log.Debugf("Generated TX %s with bytes %s", signedTx.Hash().Hex(), hexutil.Encode(data))
-	return data, contractAddr, err
+	return signedTx, contractAddr, err
 }

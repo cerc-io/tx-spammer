@@ -17,6 +17,7 @@
 package auto
 
 import (
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/sirupsen/logrus"
 	"github.com/vulcanize/tx_spammer/pkg/shared"
@@ -35,7 +36,7 @@ func NewEthSender(config *Config) *EthSender {
 }
 
 // Send awaits txs off the provided work queue and sends them
-func (s *EthSender) Send(quitChan <-chan bool, txChan <-chan []byte) (<-chan bool, <-chan error) {
+func (s *EthSender) Send(quitChan <-chan bool, txChan <-chan *types.Transaction) (<-chan bool, <-chan error) {
 	// err channel returned to calling context
 	errChan := make(chan error)
 	doneChan := make(chan bool)
@@ -46,7 +47,7 @@ func (s *EthSender) Send(quitChan <-chan bool, txChan <-chan []byte) (<-chan boo
 			select {
 			case tx := <-txChan:
 				counter += 1
-				if err := shared.SendRawTransaction(s.client, tx); err != nil {
+				if err := shared.SendTransaction(s.client, tx); err != nil {
 					errChan <- err
 				}
 			case <-quitChan:

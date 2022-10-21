@@ -76,10 +76,7 @@ func (gen TxGenerator) GenerateTx(params TxParams) ([]byte, error) {
 				Data:      params.Data,
 			})
 	}
-	signer, err := shared.TxSigner(params.ChainID)
-	if err != nil {
-		return nil, err
-	}
+	signer := shared.TxSigner(params.ChainID)
 	signedTx, err := types.SignTx(tx, signer, params.SenderKey)
 	if err != nil {
 		return nil, err

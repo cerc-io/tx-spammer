@@ -58,8 +58,8 @@ func (cp *ContractDeployer) Deploy() ([]common.Address, error) {
 	for i := uint64(0); i < cp.config.Number; i++ {
 		<-ticker.C
 		for i, key := range cp.senderKeys {
-			logrus.Infof("Generating contract deployment for %s.", cp.senderAddrs[i].Hex())
-			txBytes, contractAddr, err := cp.txGenerator.GenerateTx(&GenParams{
+			logrus.Debugf("Generating contract deployment for %s.", cp.senderAddrs[i].Hex())
+			signedTx, contractAddr, err := cp.txGenerator.GenerateTx(&GenParams{
 				ChainID:   cp.config.ChainID,
 				Sender:    cp.senderAddrs[i],
 				SenderKey: key,
@@ -71,7 +71,7 @@ func (cp *ContractDeployer) Deploy() ([]common.Address, error) {
 			if err != nil {
 				return nil, err
 			}
-			if err := shared.SendRawTransaction(cp.client, txBytes); err != nil {
+			if err := shared.SendTransaction(cp.client, signedTx); err != nil {
 				return nil, err
 			}
 			contractAddrs = append(contractAddrs, contractAddr)

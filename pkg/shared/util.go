@@ -31,8 +31,29 @@ import (
 )
 
 // ChainConfig returns the appropriate ethereum chain config for the provided chain id
-func TxSigner(chainID *big.Int) (types.Signer, error) {
-	return types.NewLondonSigner(chainID), nil
+func TxSigner(chainID *big.Int) types.Signer {
+	return types.NewLondonSigner(chainID)
+}
+
+// SendTransaction sends a signed tx using the provided client
+func SendTransaction(rpcClient *rpc.Client, tx *types.Transaction) error {
+	msg, _ := tx.AsMessage(TxSigner(tx.ChainId()), big.NewInt(1))
+	if nil == tx.To() {
+		logrus.Infof("TX %s to create contract %s (from %s)",
+			tx.Hash().Hex(), crypto.CreateAddress(msg.From(), tx.Nonce()), msg.From().Hex())
+	} else if nil == tx.Data() || len(tx.Data()) == 0 {
+		logrus.Infof("TX %s to %s (from %s)",
+			tx.Hash().Hex(), msg.To().Hex(), msg.From().Hex())
+	} else {
+		logrus.Infof("TX %s calling contract %s (from %s)",
+			tx.Hash().Hex(), msg.To().Hex(), msg.From().Hex())
+	}
+
+	data, err := tx.MarshalBinary()
+	if err != nil {
+		return err
+	}
+	return SendRawTransaction(rpcClient, data)
 }
 
 // SendRawTransaction sends a raw, signed tx using the provided client
