@@ -39,13 +39,13 @@ func TxSigner(chainID *big.Int) types.Signer {
 func SendTransaction(rpcClient *rpc.Client, tx *types.Transaction) error {
 	msg, _ := tx.AsMessage(TxSigner(tx.ChainId()), big.NewInt(1))
 	if nil == tx.To() {
-		logrus.Infof("TX %s to create contract %s (from %s)",
+		logrus.Infof("TX %s to create contract %s (sender %s)",
 			tx.Hash().Hex(), crypto.CreateAddress(msg.From(), tx.Nonce()), msg.From().Hex())
 	} else if nil == tx.Data() || len(tx.Data()) == 0 {
-		logrus.Infof("TX %s to %s (from %s)",
-			tx.Hash().Hex(), msg.To().Hex(), msg.From().Hex())
+		logrus.Infof("TX %s sending %s Wei to %s (sender %s)",
+			tx.Hash().Hex(), tx.Value().String(), msg.To().Hex(), msg.From().Hex())
 	} else {
-		logrus.Infof("TX %s calling contract %s (from %s)",
+		logrus.Infof("TX %s calling contract %s (sender %s)",
 			tx.Hash().Hex(), msg.To().Hex(), msg.From().Hex())
 	}
 
