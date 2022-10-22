@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"io/ioutil"
+	"math"
 	"math/big"
 	"path/filepath"
 	"strings"
@@ -235,6 +236,11 @@ func NewCallConfig(chainID *big.Int) (*CallConfig, error) {
 		frequency = viper.GetDuration(ethCallFrequency) * time.Millisecond
 	}
 
+	totalNumber := viper.GetInt(ethCallTotalNumber)
+	if totalNumber <= 0 {
+		totalNumber = math.MaxInt
+	}
+
 	return &CallConfig{
 		ChainID:     chainID,
 		GasLimit:    viper.GetUint64(ethCallGasLimit),
@@ -243,7 +249,7 @@ func NewCallConfig(chainID *big.Int) (*CallConfig, error) {
 		MethodName:  methodName,
 		ABI:         parsedABI,
 		Frequency:   frequency,
-		TotalNumber: viper.GetInt(ethCallTotalNumber),
+		TotalNumber: totalNumber,
 	}, nil
 }
 
@@ -263,6 +269,11 @@ func NewSendConfig(chainID *big.Int) (*SendConfig, error) {
 		frequency = viper.GetDuration(ethCallFrequency) * time.Millisecond
 	}
 
+	totalNumber := viper.GetInt(ethSendTotalNumber)
+	if totalNumber <= 0 {
+		totalNumber = math.MaxInt
+	}
+
 	return &SendConfig{
 		ChainID:     chainID,
 		Frequency:   frequency,
@@ -270,6 +281,6 @@ func NewSendConfig(chainID *big.Int) (*SendConfig, error) {
 		GasLimit:    viper.GetUint64(ethSendGasLimit),
 		GasFeeCap:   big.NewInt(viper.GetInt64(ethSendGasFeeCap)),
 		GasTipCap:   big.NewInt(viper.GetInt64(ethSendGasTipCap)),
-		TotalNumber: viper.GetInt(ethSendTotalNumber),
+		TotalNumber: totalNumber,
 	}, nil
 }

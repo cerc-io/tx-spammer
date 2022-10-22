@@ -18,7 +18,7 @@ type TxWatcher struct {
 
 func NewTxWatcher(ethClient *ethclient.Client) *TxWatcher {
 	return &TxWatcher{
-		PendingTxCh: make(chan *types.Transaction, 1000),
+		PendingTxCh: make(chan *types.Transaction, 2500),
 		ethClient:   ethClient,
 		quitCh:      make(chan bool),
 	}
@@ -32,7 +32,7 @@ func (tw *TxWatcher) Start() {
 			select {
 			case tx := <-tw.PendingTxCh:
 				tw.counter += 1
-				if 0 == tw.counter%10 {
+				if 0 == tw.counter%50 {
 					logrus.Debugf("TxW: checking on TX %s (%d in channel)", tx.Hash().Hex(), len(tw.PendingTxCh))
 					var receipt *types.Receipt = nil
 					sleep := time.Millisecond

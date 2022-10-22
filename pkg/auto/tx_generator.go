@@ -135,7 +135,7 @@ func (gen *TxGenerator) genCalls(wg *sync.WaitGroup, txChan chan<- *types.Transa
 		case <-ticker.C:
 			contractAddr := callConfig.ContractAddrs[rand.Intn(len(callConfig.ContractAddrs))]
 			log.Debugf("Generating call from %s to %s.", senderAddr.Hex(), contractAddr.Hex())
-			data, err := callConfig.ABI.Pack(callConfig.MethodName, contractAddr, big.NewInt(time.Now().UnixNano()))
+			data, err := callConfig.ABI.Pack(callConfig.MethodName, contractAddr, big.NewInt(int64(i)))
 			if err != nil {
 				errChan <- err
 				continue
