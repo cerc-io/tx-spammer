@@ -237,7 +237,7 @@ func NewCallConfig(chainID *big.Int) (*CallConfig, error) {
 	}
 
 	totalNumber := viper.GetInt(ethCallTotalNumber)
-	if totalNumber <= 0 {
+	if totalNumber < 0 {
 		totalNumber = math.MaxInt
 	}
 
@@ -270,7 +270,7 @@ func NewSendConfig(chainID *big.Int) (*SendConfig, error) {
 	}
 
 	totalNumber := viper.GetInt(ethSendTotalNumber)
-	if totalNumber <= 0 {
+	if totalNumber < 0 {
 		totalNumber = math.MaxInt
 	}
 
