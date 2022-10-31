@@ -195,8 +195,15 @@ func NewConfig() (*Config, error) {
 
 // NewDeploymentConfig constructs and returns a new DeploymentConfig
 func NewDeploymentConfig(chainID *big.Int) (*DeploymentConfig, error) {
-	hexData := viper.GetString(ethDeploymentData)
-	data := common.Hex2Bytes(hexData)
+	binPath := viper.GetString(ethDeploymentBinPath)
+	if binPath == "" {
+		return nil, fmt.Errorf("missing deployment.binPath")
+	}
+	binBytes, err := ioutil.ReadFile(binPath)
+	if err != nil {
+		return nil, err
+	}
+	data := common.Hex2Bytes(string(binBytes))
 
 	return &DeploymentConfig{
 		ChainID:   chainID,

@@ -24,7 +24,7 @@ const (
 	ETH_HTTP_PATH    = "ETH_HTTP_PATH"
 
 	ETH_DEPLOYMENT_NUMBER      = "ETH_DEPLOYMENT_NUMBER"
-	ETH_DEPLOYMENT_HEX_DATA    = "ETH_DEPLOYMENT_HEX_DATA"
+	ETH_DEPLOYMENT_BIN_PATH    = "ETH_DEPLOYMENT_BIN_PATH"
 	ETH_DEPLOYMENT_GAS_LIMIT   = "ETH_DEPLOYMENT_GAS_LIMIT"
 	ETH_DEPLOYMENT_GAS_FEE_CAP = "ETH_DEPLOYMENT_GAS_FEE_CAP"
 	ETH_DEPLOYMENT_GAS_TIP_CAP = "ETH_DEPLOYMENT_GAS_TIP_CAP"
@@ -48,8 +48,8 @@ const (
 	ethKeyDirPath = "eth.keyDirPath"
 	ethHttpPath   = "eth.httpPath"
 
+	ethDeploymentBinPath   = "deployment.binPath"
 	ethDeploymentNumber    = "deployment.number"
-	ethDeploymentData      = "deployment.hexData"
 	ethDeploymentGasLimit  = "deployment.gasLimit"
 	ethDeploymentGasFeeCap = "deployment.gasFeeCap"
 	ethDeploymentGasTipCap = "deployment.gasTipCap"
@@ -75,7 +75,7 @@ func bindEnv() {
 	viper.BindEnv(ethHttpPath, ETH_HTTP_PATH)
 
 	viper.BindEnv(ethDeploymentNumber, ETH_DEPLOYMENT_NUMBER)
-	viper.BindEnv(ethDeploymentData, ETH_DEPLOYMENT_HEX_DATA)
+	viper.BindEnv(ethDeploymentBinPath, ETH_DEPLOYMENT_BIN_PATH)
 	viper.BindEnv(ethDeploymentGasLimit, ETH_DEPLOYMENT_GAS_LIMIT)
 	viper.BindEnv(ethDeploymentGasFeeCap, ETH_DEPLOYMENT_GAS_FEE_CAP)
 	viper.BindEnv(ethDeploymentGasTipCap, ETH_DEPLOYMENT_GAS_TIP_CAP)
