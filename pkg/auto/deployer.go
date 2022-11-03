@@ -18,6 +18,7 @@ package auto
 
 import (
 	"crypto/ecdsa"
+	"github.com/sirupsen/logrus"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -32,7 +33,6 @@ const (
 // ContractDeployer is responsible for deploying contracts
 type ContractDeployer struct {
 	client      *rpc.Client
-	ty          shared.TxType
 	txGenerator *TxGenerator
 	senderKeys  []*ecdsa.PrivateKey
 	senderAddrs []common.Address
@@ -42,8 +42,7 @@ type ContractDeployer struct {
 // NewContractDeployer returns a new ContractDeployer
 func NewContractDeployer(config *Config, gen *TxGenerator) *ContractDeployer {
 	return &ContractDeployer{
-		client:      config.Client,
-		ty:          config.Type,
+		client:      config.RpcClient,
 		txGenerator: gen,
 		config:      config.DeploymentConfig,
 		senderKeys:  config.SenderKeys,
@@ -59,17 +58,20 @@ func (cp *ContractDeployer) Deploy() ([]common.Address, error) {
 	for i := uint64(0); i < cp.config.Number; i++ {
 		<-ticker.C
 		for i, key := range cp.senderKeys {
-			txBytes, contractAddr, err := cp.txGenerator.GenerateTx(cp.ty, &GenParams{
+			logrus.Debugf("Generating contract deployment for %s.", cp.senderAddrs[i].Hex())
+			signedTx, contractAddr, err := cp.txGenerator.GenerateTx(&GenParams{
+				ChainID:   cp.config.ChainID,
 				Sender:    cp.senderAddrs[i],
 				SenderKey: key,
 				GasLimit:  cp.config.GasLimit,
-				GasPrice:  cp.config.GasPrice,
+				GasFeeCap: cp.config.GasFeeCap,
+				GasTipCap: cp.config.GasTipCap,
 				Data:      cp.config.Data,
 			})
 			if err != nil {
 				return nil, err
 			}
-			if err := shared.SendRawTransaction(cp.client, txBytes); err != nil {
+			if err := shared.SendTransaction(cp.client, signedTx); err != nil {
 				return nil, err
 			}
 			contractAddrs = append(contractAddrs, contractAddr)

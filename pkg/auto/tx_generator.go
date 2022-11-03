@@ -17,17 +17,17 @@
 package auto
 
 import (
+	"context"
 	"crypto/ecdsa"
-	"errors"
-	"fmt"
+	"github.com/ethereum/go-ethereum/crypto"
+	log "github.com/sirupsen/logrus"
 	"math/big"
+	"math/rand"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/vulcanize/tx_spammer/pkg/shared"
 )
 
@@ -36,15 +36,24 @@ type TxGenerator struct {
 	config *Config
 	// keep track of account nonces locally so we aren't spamming to determine the nonce
 	// this assumes these accounts are not sending txs outside this process
-	nonces map[common.Address]*uint64
+	nonces map[common.Address]uint64
+	lock   sync.Mutex
+}
+
+func (gen *TxGenerator) claimNonce(addr common.Address) uint64 {
+	gen.lock.Lock()
+	ret := gen.nonces[addr]
+	gen.nonces[addr] += 1
+	gen.lock.Unlock()
+	return ret
 }
 
 // NewTxGenerator creates a new tx generator
 func NewTxGenerator(config *Config) *TxGenerator {
-	nonces := make(map[common.Address]*uint64)
+	nonces := make(map[common.Address]uint64)
 	for _, addr := range config.SenderAddrs {
-		startingNonce := uint64(0)
-		nonces[addr] = &startingNonce
+		nonce, _ := config.EthClient.PendingNonceAt(context.Background(), addr)
+		nonces[addr] = nonce
 	}
 	return &TxGenerator{
 		nonces: nonces,
@@ -56,25 +65,28 @@ func NewTxGenerator(config *Config) *TxGenerator {
 type GenParams struct {
 	Sender    common.Address
 	SenderKey *ecdsa.PrivateKey
+
+	ChainID   *big.Int
+	GasTipCap *big.Int
+	GasFeeCap *big.Int
+	GasLimit  uint64
 	To        *common.Address
 	Amount    *big.Int
-	GasLimit  uint64
-	GasPrice  *big.Int
 	Data      []byte
 }
 
-func (gen *TxGenerator) GenerateTxs(quitChan <-chan bool, contractAddrs []common.Address) (<-chan bool, <-chan []byte, <-chan error) {
-	txRlpChan := make(chan []byte)
+func (gen *TxGenerator) GenerateTxs(quitChan <-chan bool) (<-chan bool, <-chan *types.Transaction, <-chan error) {
+	txChan := make(chan *types.Transaction)
 	errChan := make(chan error)
 	wg := new(sync.WaitGroup)
 	for i, sender := range gen.config.SenderKeys {
-		if len(gen.config.SendConfig.DestinationAddresses) > 0 {
+		if gen.config.SendConfig.TotalNumber > 0 {
 			wg.Add(1)
-			go gen.genSends(wg, gen.config.Type, txRlpChan, errChan, quitChan, sender, gen.config.SenderAddrs[i], gen.config.SendConfig)
+			go gen.genSends(wg, txChan, errChan, quitChan, sender, gen.config.SenderAddrs[i], gen.config.SendConfig)
 		}
-		if len(gen.config.CallConfig.StorageAddrs) > 0 {
+		if gen.config.CallConfig.TotalNumber > 0 {
 			wg.Add(1)
-			go gen.genCalls(wg, gen.config.Type, txRlpChan, errChan, quitChan, sender, gen.config.SenderAddrs[i], gen.config.CallConfig)
+			go gen.genCalls(wg, txChan, errChan, quitChan, sender, gen.config.SenderAddrs[i], gen.config.CallConfig)
 		}
 	}
 	doneChan := make(chan bool)
@@ -82,108 +94,111 @@ func (gen *TxGenerator) GenerateTxs(quitChan <-chan bool, contractAddrs []common
 		wg.Wait()
 		close(doneChan)
 	}()
-	return doneChan, txRlpChan, errChan
+	return doneChan, txChan, errChan
 }
 
-func (gen *TxGenerator) genSends(wg *sync.WaitGroup, ty shared.TxType, txRlpChan chan<- []byte, errChan chan<- error, quitChan <-chan bool, senderKey *ecdsa.PrivateKey, senderAddr common.Address, sendConfig *SendConfig) {
+func (gen *TxGenerator) genSends(wg *sync.WaitGroup, txChan chan<- *types.Transaction, errChan chan<- error, quitChan <-chan bool, senderKey *ecdsa.PrivateKey, senderAddr common.Address, sendConfig *SendConfig) {
 	defer wg.Done()
 	ticker := time.NewTicker(sendConfig.Frequency)
-	for _, dst := range sendConfig.DestinationAddresses {
+	for i := 0; i < sendConfig.TotalNumber; i++ {
 		select {
 		case <-ticker.C:
-			txRlp, _, err := gen.GenerateTx(ty, &GenParams{
+			dst := crypto.CreateAddress(receiverAddressSeed, uint64(i))
+			log.Debugf("Generating send from %s to %s.", senderAddr.Hex(), dst.Hex())
+			rawTx, _, err := gen.GenerateTx(&GenParams{
+				ChainID:   sendConfig.ChainID,
+				To:        &dst,
 				Sender:    senderAddr,
 				SenderKey: senderKey,
 				GasLimit:  sendConfig.GasLimit,
-				GasPrice:  sendConfig.GasPrice,
+				GasFeeCap: sendConfig.GasFeeCap,
+				GasTipCap: sendConfig.GasTipCap,
 				Amount:    sendConfig.Amount,
-				To:        &dst,
 			})
 			if err != nil {
 				errChan <- err
 				continue
 			}
-			txRlpChan <- txRlp
+			txChan <- rawTx
 		case <-quitChan:
 			return
 		}
 	}
+	log.Info("Done generating sends for ", senderAddr.Hex())
 }
 
-func (gen *TxGenerator) genCalls(wg *sync.WaitGroup, ty shared.TxType, txRlpChan chan<- []byte, errChan chan<- error, quitChan <-chan bool, senderKey *ecdsa.PrivateKey, senderAddr common.Address, callConfig *CallConfig) {
+func (gen *TxGenerator) genCalls(wg *sync.WaitGroup, txChan chan<- *types.Transaction, errChan chan<- error, quitChan <-chan bool, senderKey *ecdsa.PrivateKey, senderAddr common.Address, callConfig *CallConfig) {
 	defer wg.Done()
 	ticker := time.NewTicker(callConfig.Frequency)
-	for _, addr := range callConfig.StorageAddrs {
+	for i := 0; i < callConfig.TotalNumber; i++ {
 		select {
 		case <-ticker.C:
-			data, err := callConfig.ABI.Pack(callConfig.MethodName, addr, callConfig.StorageValue)
+			contractAddr := callConfig.ContractAddrs[rand.Intn(len(callConfig.ContractAddrs))]
+			log.Debugf("Generating call from %s to %s.", senderAddr.Hex(), contractAddr.Hex())
+			data, err := callConfig.ABI.Pack(callConfig.MethodName, contractAddr, big.NewInt(int64(i)))
 			if err != nil {
 				errChan <- err
 				continue
 			}
-			txRlp, _, err := gen.GenerateTx(ty, &GenParams{
+			rawTx, _, err := gen.GenerateTx(&GenParams{
 				Sender:    senderAddr,
 				SenderKey: senderKey,
 				GasLimit:  callConfig.GasLimit,
-				GasPrice:  callConfig.GasPrice,
+				GasFeeCap: callConfig.GasFeeCap,
+				GasTipCap: callConfig.GasTipCap,
 				Data:      data,
+				To:        &contractAddr,
 			})
 			if err != nil {
 				errChan <- err
 				continue
 			}
-			txRlpChan <- txRlp
+			txChan <- rawTx
 		case <-quitChan:
 			return
 		}
 	}
+	log.Info("Done generating calls for ", senderAddr.Hex())
 }
 
 // GenerateTx generates tx from the provided params
-func (gen TxGenerator) GenerateTx(ty shared.TxType, params *GenParams) ([]byte, common.Address, error) {
-	switch ty {
-	case shared.OptimismL2:
-		return gen.genL2(params, gen.config.OptimismConfig)
-	case shared.Standard:
-		return gen.gen(params)
-	case shared.EIP1559:
-		return gen.gen1559(params, gen.config.EIP1559Config)
-	default:
-		return nil, common.Address{}, fmt.Errorf("unsupported tx type: %s", ty.String())
-	}
-}
-
-func (gen TxGenerator) genL2(params *GenParams, op *OptimismConfig) ([]byte, common.Address, error) {
-	nonce := atomic.AddUint64(gen.nonces[params.Sender], 1)
+func (gen *TxGenerator) GenerateTx(params *GenParams) (*types.Transaction, common.Address, error) {
+	nonce := gen.claimNonce(params.Sender)
 	tx := new(types.Transaction)
 	var contractAddr common.Address
 	var err error
 	if params.To == nil {
-		tx = types.NewContractCreation(nonce, params.Amount, params.GasLimit, params.GasPrice, params.Data, op.L1SenderAddr, op.L1RollupTxId, op.QueueOrigin)
-		contractAddr, err = shared.WriteContractAddr(shared.DefaultDeploymentAddrLogPathPrefix, params.Sender, nonce)
+		tx = types.NewTx(
+			&types.DynamicFeeTx{
+				ChainID:   params.ChainID,
+				Nonce:     nonce,
+				Gas:       params.GasLimit,
+				GasTipCap: params.GasTipCap,
+				GasFeeCap: params.GasFeeCap,
+				To:        nil,
+				Value:     params.Amount,
+				Data:      params.Data,
+			})
+		contractAddr, err = shared.WriteContractAddr("", params.Sender, nonce)
 		if err != nil {
 			return nil, common.Address{}, err
 		}
 	} else {
-		tx = types.NewTransaction(nonce, *params.To, params.Amount, params.GasLimit, params.GasPrice, params.Data, op.L1SenderAddr, op.L1RollupTxId, op.QueueOrigin, op.SigHashType)
+		tx = types.NewTx(
+			&types.DynamicFeeTx{
+				ChainID:   params.ChainID,
+				Nonce:     nonce,
+				GasTipCap: params.GasTipCap,
+				GasFeeCap: params.GasFeeCap,
+				Gas:       params.GasLimit,
+				To:        params.To,
+				Value:     params.Amount,
+				Data:      params.Data,
+			})
 	}
 	signedTx, err := types.SignTx(tx, gen.config.Signer, params.SenderKey)
 	if err != nil {
 		return nil, common.Address{}, err
 	}
-	txRlp, err := rlp.EncodeToBytes(signedTx)
-	if err != nil {
-		return nil, common.Address{}, err
-	}
-	return txRlp, contractAddr, err
-}
-
-func (gen TxGenerator) gen(params *GenParams) ([]byte, common.Address, error) {
-	// TODO: support standard geth
-	return nil, common.Address{}, errors.New("L1 support not yet available")
-}
-
-func (gen TxGenerator) gen1559(params *GenParams, eip1559Config *EIP1559Config) ([]byte, common.Address, error) {
-	// TODO: support EIP1559
-	return nil, common.Address{}, errors.New("1559 support not yet available")
+	return signedTx, contractAddr, err
 }

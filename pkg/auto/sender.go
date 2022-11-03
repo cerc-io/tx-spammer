@@ -17,6 +17,7 @@
 package auto
 
 import (
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/sirupsen/logrus"
 	"github.com/vulcanize/tx_spammer/pkg/shared"
@@ -30,25 +31,29 @@ type EthSender struct {
 // NewEthSender returns a new EthSender
 func NewEthSender(config *Config) *EthSender {
 	return &EthSender{
-		client: config.Client,
+		client: config.RpcClient,
 	}
 }
 
 // Send awaits txs off the provided work queue and sends them
-func (s *EthSender) Send(quitChan <-chan bool, txRlpChan <-chan []byte) (<-chan bool, <-chan error) {
+func (s *EthSender) Send(quitChan <-chan bool, txChan <-chan *types.Transaction, sentCh chan *types.Transaction) (<-chan bool, <-chan error) {
 	// err channel returned to calling context
 	errChan := make(chan error)
 	doneChan := make(chan bool)
 	go func() {
 		defer close(doneChan)
+		counter := 0
 		for {
 			select {
-			case tx := <-txRlpChan:
-				if err := shared.SendRawTransaction(s.client, tx); err != nil {
+			case tx := <-txChan:
+				counter += 1
+				if err := shared.SendTransaction(s.client, tx); err != nil {
 					errChan <- err
+				} else {
+					sentCh <- tx
 				}
 			case <-quitChan:
-				logrus.Info("quitting Send loop")
+				logrus.Infof("quitting Send loop (sent %d)", counter)
 				return
 			}
 		}

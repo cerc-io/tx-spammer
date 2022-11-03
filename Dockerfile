@@ -1,4 +1,4 @@
-FROM golang:1.13-alpine as builder
+FROM golang:1.19-alpine as builder
 
 RUN apk --update --no-cache add make git g++ linux-headers
 # DEBUG

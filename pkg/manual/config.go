@@ -24,11 +24,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vulcanize/tx_spammer/pkg/shared"
-
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/spf13/viper"
@@ -42,29 +38,16 @@ type TxParams struct {
 	// HTTP Client for this tx type
 	Client *rpc.Client
 
-	// Type of the tx
-	Type shared.TxType
-
-	// Chain ID
-	ChainID uint64
-
-	// Universal tx fields
-	To       *common.Address
-	GasLimit uint64
-	GasPrice *big.Int // nil if eip1559
-	Amount   *big.Int
-	Data     []byte
-	Sender   common.Address
-
-	// Optimism-specific metadata fields
-	L1SenderAddr *common.Address
-	L1RollupTxId *hexutil.Uint64
-	SigHashType  types.SignatureHashType
-	QueueOrigin  types.QueueOrigin
-
-	// EIP1559-specific fields
-	GasPremium *big.Int
-	FeeCap     *big.Int
+	// DynamicFeeTx properties - Start
+	ChainID   *big.Int
+	Nonce     uint64
+	GasTipCap *big.Int // a.k.a. maxPriorityFeePerGas
+	GasFeeCap *big.Int // a.k.a. maxFeePerGas
+	Gas       uint64
+	To        *common.Address // nil means contract creation
+	Value     *big.Int
+	Data      []byte
+	// DynamicFeeTx properties - End
 
 	// Sender key, if left the senderKeyPath is empty we generate a new key
 	SenderKey             *ecdsa.PrivateKey
@@ -72,6 +55,7 @@ type TxParams struct {
 	ContractAddrWritePath string
 
 	// Sending params
+	Sender common.Address
 	// How often we send a tx of this type
 	Frequency time.Duration
 	// Total number of txs of this type to send
@@ -80,7 +64,7 @@ type TxParams struct {
 	Delay time.Duration
 }
 
-// NewConfig returns a new tx spammer config
+// NewTxParams NewConfig returns a new tx spammer config
 func NewTxParams() ([]TxParams, error) {
 	bindEnv()
 	addrLogPath := viper.GetString("eth.addrLogPath")
@@ -100,16 +84,6 @@ func NewTxParams() ([]TxParams, error) {
 			return nil, err
 		}
 
-		// Get tx type and chain id
-		txTypeStr := viper.GetString(txName + typeSuffix)
-		if txTypeStr == "" {
-			return nil, fmt.Errorf("need tx type for tx %s", txName)
-		}
-		txType, err := shared.TxTypeFromString(txTypeStr)
-		if err != nil {
-			return nil, err
-		}
-
 		// Get basic fields
 		toStr := viper.GetString(txName + toSuffix)
 		var toAddr *common.Address
@@ -124,17 +98,9 @@ func NewTxParams() ([]TxParams, error) {
 				return nil, fmt.Errorf("amount (%s) for tx %s is not valid", amountStr, txName)
 			}
 		}
-		gasPriceStr := viper.GetString(txName + gasPriceSuffix)
-		var gasPrice *big.Int
-		if gasPriceStr != "" {
-			gasPrice = new(big.Int)
-			if _, ok := gasPrice.SetString(gasPriceStr, 10); !ok {
-				return nil, fmt.Errorf("gasPrice (%s) for tx %s is not valid", gasPriceStr, txName)
-			}
-		}
 		gasLimit := viper.GetUint64(txName + gasLimitSuffix)
 		hex := viper.GetString(txName + dataSuffix)
-		data := make([]byte, 0)
+		var data []byte = nil
 		if hex != "" {
 			data = common.Hex2Bytes(hex)
 		}
@@ -165,62 +131,41 @@ func NewTxParams() ([]TxParams, error) {
 			return nil, err
 		}
 
-		// Attempt to load Optimism fields
-		l1SenderStr := viper.GetString(txName + l1SenderSuffix)
-		var l1Sender *common.Address
-		if l1SenderStr != "" {
-			sender := common.HexToAddress(l1SenderStr)
-			l1Sender = &sender
-		}
-		l1RollupTxId := viper.GetUint64(txName + l1RollupTxIdSuffix)
-		l1rtid := (hexutil.Uint64)(l1RollupTxId)
-		sigHashType := viper.GetUint(txName + sigHashTypeSuffix)
-		queueOrigin := viper.GetInt64(txName + queueOriginSuffix)
-
 		// If gasPrice was empty, attempt to load EIP1559 fields
-		var feeCap, gasPremium *big.Int
-		if gasPrice == nil {
-			feeCapStr := viper.GetString(txName + feeCapSuffix)
-			gasPremiumString := viper.GetString(txName + gasPremiumSuffix)
-			if feeCapStr == "" {
-				return nil, fmt.Errorf("tx %s is missing feeCapStr", txName)
-			}
-			if gasPremiumString == "" {
-				return nil, fmt.Errorf("tx %s is missing gasPremiumStr", txName)
-			}
-			feeCap = new(big.Int)
-			gasPremium = new(big.Int)
-			if _, ok := feeCap.SetString(feeCapStr, 10); !ok {
-				return nil, fmt.Errorf("unable to set feeCap to %s for tx %s", feeCapStr, txName)
-			}
-			if _, ok := gasPremium.SetString(gasPremiumString, 10); !ok {
-				return nil, fmt.Errorf("unable to set gasPremium to %s for tx %s", gasPremiumString, txName)
-			}
+		var feeCap, tipCap *big.Int
+		feeCapStr := viper.GetString(txName + feeCapSuffix)
+		tipCapStr := viper.GetString(txName + tipCapSuffix)
+		if feeCapStr == "" {
+			return nil, fmt.Errorf("tx %s is missing feeCapStr", txName)
+		}
+		if tipCapStr == "" {
+			return nil, fmt.Errorf("tx %s is missing tipCapStr", txName)
+		}
+		feeCap = new(big.Int)
+		tipCap = new(big.Int)
+		if _, ok := feeCap.SetString(feeCapStr, 10); !ok {
+			return nil, fmt.Errorf("unable to set feeCap to %s for tx %s", feeCapStr, txName)
+		}
+		if _, ok := tipCap.SetString(tipCapStr, 10); !ok {
+			return nil, fmt.Errorf("unable to set tipCap to %s for tx %s", tipCapStr, txName)
 		}
 
 		txParams[i] = TxParams{
 			Name:                  txName,
 			Client:                rpcClient,
-			Type:                  txType,
-			ChainID:               viper.GetUint64(txName + chainIDSuffix),
+			GasTipCap:             tipCap,
+			GasFeeCap:             feeCap,
+			Gas:                   gasLimit,
 			To:                    toAddr,
-			GasLimit:              gasLimit,
-			GasPrice:              gasPrice,
-			Amount:                amount,
+			Value:                 amount,
 			Data:                  data,
 			Sender:                sender,
-			L1SenderAddr:          l1Sender,
-			L1RollupTxId:          &l1rtid,
-			SigHashType:           (types.SignatureHashType)(uint8(sigHashType)),
-			QueueOrigin:           (types.QueueOrigin)(queueOrigin),
-			GasPremium:            gasPremium,
-			FeeCap:                feeCap,
 			SenderKey:             key,
 			StartingNonce:         viper.GetUint64(txName + startingNonceSuffix),
 			ContractAddrWritePath: viper.GetString(txName + contractWriteSuffix),
-			Frequency:             viper.GetDuration(txName + frequencySuffix),
+			Frequency:             viper.GetDuration(txName+frequencySuffix) * time.Millisecond,
 			TotalNumber:           viper.GetUint64(txName + totalNumberSuffix),
-			Delay:                 viper.GetDuration(txName + delaySuffix),
+			Delay:                 viper.GetDuration(txName+delaySuffix) * time.Millisecond,
 		}
 	}
 	return txParams, nil
