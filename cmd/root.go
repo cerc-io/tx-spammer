@@ -33,7 +33,7 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:              "tx_spammer",
+	Use:              "tx-spammer",
 	PersistentPreRun: initFuncs,
 }
 

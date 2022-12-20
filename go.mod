@@ -1,4 +1,4 @@
-module github.com/vulcanize/tx_spammer
+module github.com/cerc-io/tx-spammer
 
 go 1.13
 

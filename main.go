@@ -15,7 +15,7 @@
 
 package main
 
-import "github.com/vulcanize/tx_spammer/cmd"
+import "github.com/cerc-io/tx-spammer/cmd"
 
 func main() {
 	cmd.Execute()

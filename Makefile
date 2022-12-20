@@ -1,11 +1,11 @@
 ## Build docker image
 .PHONY: docker-build
 docker-build:
-	docker build -t vulcanize/tx_spammer -f Dockerfile .
+	docker build -t cerc/tx-spammer -f Dockerfile .
 
 .PHONY: build
 build:
-	 GO111MODULE=on go build -o tx_spammer .
+	 GO111MODULE=on go build -o tx-spammer .
 
 .PHONY: contract
 contract:

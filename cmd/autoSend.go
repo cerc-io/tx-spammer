@@ -21,7 +21,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/vulcanize/tx_spammer/pkg/auto"
+	"github.com/cerc-io/tx-spammer/pkg/auto"
 )
 
 // autoSendCmd represents the autoSend command

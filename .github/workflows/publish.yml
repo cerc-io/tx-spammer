@@ -13,13 +13,13 @@ jobs:
           echo ::set-output name=sha::$(echo ${GITHUB_SHA:0:7})
           echo ::set-output name=tag::$(echo ${GITHUB_REF#refs/tags/})
       - name: Docker Login to Github Registry
-        run: echo ${{ secrets.GITHUB_TOKEN }} | docker login https://docker.pkg.github.com -u vulcanize --password-stdin
+        run: echo ${{ secrets.GITHUB_TOKEN }} | docker login https://git.vdb.to -u vulcanize --password-stdin
       - name: Docker Pull
-        run: docker pull docker.pkg.github.com/vulcanize/tx_spammer/tx_spammer:${{steps.vars.outputs.sha}}
+        run: docker pull git.vdb.to/cerc-io/tx_spammer/tx_spammer:${{steps.vars.outputs.sha}}
       - name: Docker Login to Docker Registry
         run: echo ${{ secrets.VULCANIZEJENKINS_PAT }} | docker login -u vulcanizejenkins --password-stdin
       - name: Tag docker image
-        run: docker tag docker.pkg.github.com/vulcanize/tx_spammer/tx_spammer:${{steps.vars.outputs.sha}} vulcanize/tx_spammer:${{steps.vars.outputs.tag}}
+        run: docker tag git.vdb.to/cerc-io/tx_spammer/tx_spammer:${{steps.vars.outputs.sha}} cerc-io/tx_spammer:${{steps.vars.outputs.tag}}
       - name: Docker Push to Docker Hub
-        run: docker push vulcanize/tx_spammer:${{steps.vars.outputs.tag}}
+        run: docker push cerc-io/tx_spammer:${{steps.vars.outputs.tag}}
 
