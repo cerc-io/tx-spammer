@@ -23,7 +23,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/vulcanize/tx_spammer/pkg/shared"
+	"github.com/cerc-io/tx-spammer/pkg/shared"
 )
 
 const (

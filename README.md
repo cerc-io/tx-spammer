@@ -1,9 +1,9 @@
-# tx_spammer
+# tx-spammer
 Tools to enable the semi-reproducible growth of a large and complex chain over RPC, for testing and benchmarking purposes
 
 Usage:
 
-`./tx_spammer autoSend --config=./environments/gen.toml`
+`./tx-spammer autoSend --config=./environments/gen.toml`
 
 The `autoSend` command takes as input a .toml config of the below format, the fields can be overridden with the env variables in the comments.
 It uses the provided key pairs and configuraiton parameters to generate and deploy a number of contracts with a simple interface for `Put`ing to a dynamic data structure.

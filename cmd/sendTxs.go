@@ -22,7 +22,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
-	"github.com/vulcanize/tx_spammer/pkg/manual"
+	"github.com/cerc-io/tx-spammer/pkg/manual"
 )
 
 // sendTxsCmd represents the sendTxs command

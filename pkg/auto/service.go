@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	"github.com/sirupsen/logrus"
-	"github.com/vulcanize/tx_spammer/pkg/shared"
+	"github.com/cerc-io/tx-spammer/pkg/shared"
 )
 
 // Spammer underlying struct type for spamming service

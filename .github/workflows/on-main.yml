@@ -17,9 +17,9 @@ jobs:
       - name: Run docker build
         run: make docker-build
       - name: Tag docker image
-        run: docker tag vulcanize/tx_spammer docker.pkg.github.com/vulcanize/tx_spammer/tx_spammer:${{steps.vars.outputs.sha}}
+        run: docker tag cerc-io/tx_spammer git.vdb.to/cerc-io/tx_spammer/tx_spammer:${{steps.vars.outputs.sha}}
       - name: Docker Login
-        run: echo ${{ secrets.GITHUB_TOKEN }} | docker login https://docker.pkg.github.com -u vulcanize --password-stdin
+        run: echo ${{ secrets.GITHUB_TOKEN }} | docker login https://git.vdb.to -u cerc-io --password-stdin
       - name: Docker Push
-        run: docker push docker.pkg.github.com/vulcanize/tx_spammer/tx_spammer:${{steps.vars.outputs.sha}}
+        run: docker push git.vdb.to/cerc-io/tx_spammer/tx_spammer:${{steps.vars.outputs.sha}}
 
