@@ -19,10 +19,10 @@ package manual
 import (
 	"sync/atomic"
 
+	"github.com/cerc-io/tx-spammer/pkg/shared"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/cerc-io/tx-spammer/pkg/shared"
 )
 
 // TxGenerator generates and signs txs

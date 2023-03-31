@@ -19,8 +19,8 @@ package auto
 import (
 	"fmt"
 
-	"github.com/sirupsen/logrus"
 	"github.com/cerc-io/tx-spammer/pkg/shared"
+	"github.com/sirupsen/logrus"
 )
 
 // Spammer underlying struct type for spamming service

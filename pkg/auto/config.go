@@ -21,7 +21,6 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"io/ioutil"
 	"math"
 	"math/big"
@@ -29,13 +28,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum/ethclient"
+
+	"github.com/cerc-io/tx-spammer/pkg/shared"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/spf13/viper"
-	"github.com/cerc-io/tx-spammer/pkg/shared"
 )
 
 var (

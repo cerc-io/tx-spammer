@@ -2,10 +2,11 @@ package auto
 
 import (
 	"context"
+	"time"
+
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/sirupsen/logrus"
-	"time"
 )
 
 type TxWatcher struct {

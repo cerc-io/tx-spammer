@@ -19,16 +19,17 @@ package auto
 import (
 	"context"
 	"crypto/ecdsa"
-	"github.com/ethereum/go-ethereum/crypto"
-	log "github.com/sirupsen/logrus"
 	"math/big"
 	"math/rand"
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/crypto"
+	log "github.com/sirupsen/logrus"
+
+	"github.com/cerc-io/tx-spammer/pkg/shared"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/cerc-io/tx-spammer/pkg/shared"
 )
 
 // TxGenerator generates and signs txs

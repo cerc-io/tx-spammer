@@ -17,8 +17,8 @@
 package manual
 
 import (
-	"github.com/sirupsen/logrus"
 	"github.com/cerc-io/tx-spammer/pkg/shared"
+	"github.com/sirupsen/logrus"
 )
 
 type Spammer struct {

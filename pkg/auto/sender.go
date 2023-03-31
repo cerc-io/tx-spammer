@@ -17,10 +17,10 @@
 package auto
 
 import (
+	"github.com/cerc-io/tx-spammer/pkg/shared"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/sirupsen/logrus"
-	"github.com/cerc-io/tx-spammer/pkg/shared"
 )
 
 // EthSender sends eth value transfer txs
