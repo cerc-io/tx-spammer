@@ -18,12 +18,13 @@ package auto
 
 import (
 	"crypto/ecdsa"
-	"github.com/sirupsen/logrus"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
+	"github.com/cerc-io/tx-spammer/pkg/shared"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/cerc-io/tx-spammer/pkg/shared"
 )
 
 const (

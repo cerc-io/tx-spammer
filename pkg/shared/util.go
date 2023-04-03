@@ -18,35 +18,36 @@ package shared
 
 import (
 	"context"
-	"github.com/sirupsen/logrus"
 	"math/big"
 	"os"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/sirupsen/logrus"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
-// ChainConfig returns the appropriate ethereum chain config for the provided chain id
+// TxSigner returns the London signer at the provided block height
 func TxSigner(chainID *big.Int) types.Signer {
 	return types.NewLondonSigner(chainID)
 }
 
 // SendTransaction sends a signed tx using the provided client
 func SendTransaction(rpcClient *rpc.Client, tx *types.Transaction) error {
-	msg, _ := tx.AsMessage(TxSigner(tx.ChainId()), big.NewInt(1))
+	msg, _ := core.TransactionToMessage(tx, TxSigner(tx.ChainId()), big.NewInt(1))
 	if nil == tx.To() {
 		logrus.Debugf("TX %s to create contract %s (sender %s)",
-			tx.Hash().Hex(), crypto.CreateAddress(msg.From(), tx.Nonce()), msg.From().Hex())
+			tx.Hash().Hex(), crypto.CreateAddress(msg.From, tx.Nonce()), msg.From.Hex())
 	} else if nil == tx.Data() || len(tx.Data()) == 0 {
 		logrus.Debugf("TX %s sending %s Wei to %s (sender %s)",
-			tx.Hash().Hex(), tx.Value().String(), msg.To().Hex(), msg.From().Hex())
+			tx.Hash().Hex(), tx.Value().String(), tx.To().Hex(), msg.From.Hex())
 	} else {
 		logrus.Debugf("TX %s calling contract %s (sender %s)",
-			tx.Hash().Hex(), msg.To().Hex(), msg.From().Hex())
+			tx.Hash().Hex(), tx.To().Hex(), msg.From.Hex())
 	}
 
 	data, err := tx.MarshalBinary()
