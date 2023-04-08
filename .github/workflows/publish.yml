@@ -15,11 +15,11 @@ jobs:
       - name: Docker Login to Github Registry
         run: echo ${{ secrets.GITHUB_TOKEN }} | docker login https://git.vdb.to -u vulcanize --password-stdin
       - name: Docker Pull
-        run: docker pull git.vdb.to/cerc-io/tx_spammer/tx_spammer:${{steps.vars.outputs.sha}}
+        run: docker pull git.vdb.to/cerc-io/tx-spammer/tx-spammer:${{steps.vars.outputs.sha}}
       - name: Docker Login to Docker Registry
         run: echo ${{ secrets.VULCANIZEJENKINS_PAT }} | docker login -u vulcanizejenkins --password-stdin
       - name: Tag docker image
-        run: docker tag git.vdb.to/cerc-io/tx_spammer/tx_spammer:${{steps.vars.outputs.sha}} cerc-io/tx_spammer:${{steps.vars.outputs.tag}}
+        run: docker tag git.vdb.to/cerc-io/tx-spammer/tx-spammer:${{steps.vars.outputs.sha}} cerc-io/tx-spammer:${{steps.vars.outputs.tag}}
       - name: Docker Push to Docker Hub
-        run: docker push cerc-io/tx_spammer:${{steps.vars.outputs.tag}}
+        run: docker push cerc-io/tx-spammer:${{steps.vars.outputs.tag}}
 
