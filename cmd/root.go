@@ -45,7 +45,7 @@ func Execute() {
 }
 
 func initFuncs(cmd *cobra.Command, args []string) {
-	logfile := viper.GetString("logfile")
+	logfile := viper.GetString("log.file")
 	if logfile != "" {
 		file, err := os.OpenFile(logfile,
 			os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
@@ -65,7 +65,7 @@ func initFuncs(cmd *cobra.Command, args []string) {
 }
 
 func logLevel() error {
-	viper.BindEnv("log.level", "LOGRUS_LEVEL")
+	viper.BindEnv("log.level", "LOG_LEVEL")
 	lvl, err := log.ParseLevel(viper.GetString("log.level"))
 	if err != nil {
 		return err
