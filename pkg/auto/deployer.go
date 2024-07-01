@@ -60,7 +60,7 @@ func (cp *ContractDeployer) Deploy() ([]common.Address, error) {
 		<-ticker.C
 		for i, key := range cp.senderKeys {
 			logrus.Debugf("Generating contract deployment for %s.", cp.senderAddrs[i].Hex())
-			signedTx, contractAddr, err := cp.txGenerator.GenerateTx(&GenParams{
+			signedTx, contractAddr, err := cp.txGenerator.createTx(&GenParams{
 				ChainID:   cp.config.ChainID,
 				Sender:    cp.senderAddrs[i],
 				SenderKey: key,

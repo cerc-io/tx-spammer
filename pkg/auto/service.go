@@ -58,38 +58,35 @@ func (s *Spammer) Loop(quitChan <-chan bool) (<-chan bool, error) {
 	sendDoneChan, sendErrChan := s.Sender.Send(senderQuit, txChan, watcher.PendingTxCh)
 
 	go func() {
-		defer close(doneChan)
-		for {
-			select {
-			case err := <-genErrChan:
-				logrus.Errorf("tx generation error: %v", err)
+		<-genDoneChan
+		recoverClose(senderQuit)
+		<-sendDoneChan
+		recoverClose(watcher.quitCh)
+		close(doneChan)
+	}()
+
+	go func() {
+		for err := range genErrChan {
+			logrus.Errorf("tx generation error: %v", err)
+			recoverClose(genQuit)
+		}
+	}()
+
+	go func() {
+		for err := range sendErrChan {
+			logrus.Errorf("tx sending error: %v", err)
+			if s.config.StopOnSendError {
 				recoverClose(genQuit)
-				<-genDoneChan
-				recoverClose(senderQuit)
-				<-sendDoneChan
-				recoverClose(watcher.quitCh)
-			case err := <-sendErrChan:
-				logrus.Errorf("tx sending error: %v", err)
-				recoverClose(genQuit)
-				<-genDoneChan
-				recoverClose(senderQuit)
-				<-sendDoneChan
-				recoverClose(watcher.quitCh)
-			case <-quitChan:
-				logrus.Info("shutting down tx spammer")
-				recoverClose(genQuit)
-				<-genDoneChan
-				recoverClose(senderQuit)
-				<-sendDoneChan
-				recoverClose(watcher.quitCh)
-			case <-sendDoneChan:
-				recoverClose(watcher.quitCh)
-				return
-			case <-genDoneChan:
-				recoverClose(senderQuit)
 			}
 		}
 	}()
+
+	go func() {
+		<-quitChan
+		logrus.Info("shutting down tx spammer")
+		recoverClose(genQuit)
+	}()
+
 	return doneChan, nil
 }
 

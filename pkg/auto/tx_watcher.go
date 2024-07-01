@@ -45,8 +45,8 @@ func (tw *TxWatcher) Start() {
 							sleep *= 2
 						} else {
 							elapsed := time.Now().Sub(tw.startedAt)
-							logrus.Debugf("TxW: TX %s found in block %s after %dms.", tx.Hash().Hex(),
-								receipt.BlockNumber.String(), time.Now().Sub(start).Milliseconds())
+							logrus.Debugf("TxW: TX %s found in block %s after %v.", tx.Hash().Hex(),
+								receipt.BlockNumber.String(), time.Now().Sub(start))
 							logrus.Infof("TxW: %d in %.0f seconds (%.2f/sec, %d pending)",
 								tw.counter, elapsed.Seconds(), float64(tw.counter)/elapsed.Seconds(), len(tw.PendingTxCh))
 						}

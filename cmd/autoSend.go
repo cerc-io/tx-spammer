@@ -21,6 +21,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+
 	"github.com/cerc-io/tx-spammer/pkg/auto"
 )
 
@@ -38,11 +40,18 @@ Support standard, optimism L2, optimism L1 to L2, and EIP1559 transactions`,
 	},
 }
 
+func init() {
+	autoSendCmd.PersistentFlags().Bool("stop-on-error", true,
+		"stop service when SendTransaction returns an error")
+	viper.BindPFlag(auto.SpammerStopOnError, autoSendCmd.PersistentFlags().Lookup("stop-on-error"))
+}
+
 func autoSend() {
 	config, err := auto.NewConfig()
 	if err != nil {
 		logWithCommand.Fatal(err)
 	}
+	logrus.WithFields(logrus.Fields{"config": config}).Debug("Loaded config")
 	txSpammer := auto.NewTxSpammer(config)
 	quitChan := make(chan bool)
 	doneChan, err := txSpammer.Loop(quitChan)

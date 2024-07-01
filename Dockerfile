@@ -1,13 +1,17 @@
-FROM golang:1.19-alpine as builder
+FROM golang:1.21-alpine as builder
 
-RUN apk --update --no-cache add make git g++ linux-headers
+RUN apk --update --no-cache add gcc libc-dev
 # DEBUG
 RUN apk add busybox-extras
 
 # Get and build tx-spammer
-ADD . /go/src/github.com/cerc-io/tx-spammer
 WORKDIR /go/src/github.com/cerc-io/tx-spammer
-RUN GO111MODULE=on GCO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags '-extldflags "-static"' -o tx-spammer .
+
+ENV GO111MODULE=on
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags '-extldflags "-static"' -o tx-spammer .
 
 # app container
 FROM alpine

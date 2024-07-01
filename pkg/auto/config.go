@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/holiman/uint256"
 
 	"github.com/cerc-io/tx-spammer/pkg/shared"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -50,10 +51,12 @@ func init() {
 
 // Config holds all the parameters for the auto tx spammer
 type Config struct {
+	// Whether to stop service on any error from tx generation or sending
+	StopOnSendError bool
+
 	// HTTP client for sending transactions
 	RpcClient *rpc.Client
 	EthClient *ethclient.Client
-	ChainID   *big.Int
 
 	// Key pairs for the accounts we will use to deploy contracts and send txs
 	SenderKeys  []*ecdsa.PrivateKey
@@ -70,6 +73,9 @@ type Config struct {
 
 	// Configuration for the eth transfer txs
 	SendConfig *SendConfig
+
+	// Configuration for the blob txs
+	BlobTxConfig *BlobTxConfig
 }
 
 // DeploymentConfig holds the parameters for the contract deployment contracts
@@ -111,7 +117,24 @@ type SendConfig struct {
 	TotalNumber int
 }
 
+// SendConfig holds the parameters for the blob txs
+type BlobTxConfig struct {
+	ChainID   *big.Int
+	GasLimit  uint64
+	GasFeeCap *big.Int
+	GasTipCap *big.Int
+	Amount    *big.Int
+
+	BlobFeeCap *uint256.Int
+	BlobCount  int
+
+	Frequency   time.Duration
+	TotalNumber int
+}
+
 func NewConfig() (*Config, error) {
+	stopOnError := viper.GetBool(SpammerStopOnError)
+
 	// Initialize rpc client
 	httpPathStr := viper.GetString(ethHttpPath)
 	if httpPathStr == "" {
@@ -181,8 +204,15 @@ func NewConfig() (*Config, error) {
 		return nil, err
 	}
 
+	// Load blob tx config
+	blobTxConfig, err := NewBlobTxConfig(chainID)
+	if err != nil {
+		return nil, err
+	}
+
 	// Assemble and return
 	return &Config{
+		StopOnSendError:  stopOnError,
 		RpcClient:        rpcClient,
 		EthClient:        ethClient,
 		SenderKeys:       keys,
@@ -191,6 +221,7 @@ func NewConfig() (*Config, error) {
 		DeploymentConfig: deploymentConfig,
 		CallConfig:       callConfig,
 		SendConfig:       sendConfig,
+		BlobTxConfig:     blobTxConfig,
 	}, nil
 }
 
@@ -289,6 +320,40 @@ func NewSendConfig(chainID *big.Int) (*SendConfig, error) {
 		GasLimit:    viper.GetUint64(ethSendGasLimit),
 		GasFeeCap:   big.NewInt(viper.GetInt64(ethSendGasFeeCap)),
 		GasTipCap:   big.NewInt(viper.GetInt64(ethSendGasTipCap)),
+		TotalNumber: totalNumber,
+	}, nil
+}
+
+// NewBlobTxConfig constructs and returns a new SendConfig
+func NewBlobTxConfig(chainID *big.Int) (*BlobTxConfig, error) {
+	amountStr := viper.GetString(ethBlobTxAmount)
+	amount, ok := new(big.Int).SetString(amountStr, 10)
+	if !ok {
+		return nil, fmt.Errorf("unable to convert amount string (%s) into big.Int", amountStr)
+	}
+
+	var frequency time.Duration
+	tmpFreq := viper.GetDuration(ethBlobTxFrequency)
+	if tmpFreq <= 0 {
+		frequency = time.Microsecond
+	} else {
+		frequency = tmpFreq * time.Millisecond
+	}
+
+	totalNumber := viper.GetInt(ethBlobTxTotalNumber)
+	if totalNumber < 0 {
+		totalNumber = math.MaxInt
+	}
+
+	return &BlobTxConfig{
+		ChainID:     chainID,
+		Frequency:   frequency,
+		Amount:      amount,
+		GasLimit:    viper.GetUint64(ethBlobTxGasLimit),
+		GasFeeCap:   big.NewInt(viper.GetInt64(ethBlobTxGasFeeCap)),
+		GasTipCap:   big.NewInt(viper.GetInt64(ethBlobTxGasTipCap)),
+		BlobFeeCap:  uint256.MustFromBig(big.NewInt(viper.GetInt64(ethBlobTxBlobFeeCap))),
+		BlobCount:   viper.GetInt(ethBlobTxBlobCount),
 		TotalNumber: totalNumber,
 	}, nil
 }

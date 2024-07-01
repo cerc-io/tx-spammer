@@ -28,3 +28,13 @@
     gasLimit = 21000 # gasLimit to use for the eth transfer txs - env: $ETH_SEND_GAS_LIMIT
     gasTipCap = "1000000000" # gasTipCap to use for the eth transfer txs - env: $ETH_SEND_GAS_TIP_CAP
     gasFeeCap = "1000000007" # gasFeeCap to use for the eth transfer txs - env: $ETH_SEND_GAS_FEE_CAP
+
+[blobSpammer]
+    frequency = 500 # how often to send a transaction (in milliseconds, -1 for no delay) - env: $ETH_SEND_FREQ
+    totalNumber = -1 # total number of transactions to send (per sender, -1 for unlimited) - env: $ETH_SEND_TOTAL_NUMBER
+    amount = "10000" # amount of wei (1x10^-18 ETH) to send in each tx (be mindful of the genesis allocations) - env: $ETH_SEND_AMOUNT
+    gasLimit = 21000 # gasLimit to use for the blob txs - env: $ETH_SEND_GAS_LIMIT
+    gasTipCap = "1000000000" # gasTipCap to use for the blob txs - env: $ETH_SEND_GAS_TIP_CAP
+    gasFeeCap = "1000000007" # gasFeeCap to use for the blob txs - env: $ETH_SEND_GAS_FEE_CAP
+    blobCount = 1 # number of blob sidecars to send with blob txs - env: $ETH_SEND_BLOB_LENGTH
+    blobFeeCap = "1000000" # blobFeeCap to use for the eth blob txs - env: $ETH_SEND_BLOB_FEE_CAP

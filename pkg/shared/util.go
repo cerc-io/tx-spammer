@@ -31,25 +31,40 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
-// TxSigner returns the London signer at the provided block height
+// TxSigner returns the Cancun signer at the provided block height
 func TxSigner(chainID *big.Int) types.Signer {
-	return types.NewLondonSigner(chainID)
+	return types.NewCancunSigner(chainID)
 }
 
 // SendTransaction sends a signed tx using the provided client
 func SendTransaction(rpcClient *rpc.Client, tx *types.Transaction) error {
-	msg, _ := core.TransactionToMessage(tx, TxSigner(tx.ChainId()), big.NewInt(1))
-	if nil == tx.To() {
-		logrus.Debugf("TX %s to create contract %s (sender %s)",
-			tx.Hash().Hex(), crypto.CreateAddress(msg.From, tx.Nonce()), msg.From.Hex())
-	} else if nil == tx.Data() || len(tx.Data()) == 0 {
-		logrus.Debugf("TX %s sending %s Wei to %s (sender %s)",
-			tx.Hash().Hex(), tx.Value().String(), tx.To().Hex(), msg.From.Hex())
-	} else {
-		logrus.Debugf("TX %s calling contract %s (sender %s)",
-			tx.Hash().Hex(), tx.To().Hex(), msg.From.Hex())
+	msg, err := core.TransactionToMessage(tx, TxSigner(tx.ChainId()), big.NewInt(1))
+	if err != nil {
+		return err
 	}
-
+	if nil == tx.To() {
+		logrus.WithFields(logrus.Fields{
+			"hash":     tx.Hash(),
+			"from":     msg.From,
+			"contract": crypto.CreateAddress(msg.From, tx.Nonce()),
+		}).Debug("Sending TX to create contract")
+	} else {
+		fields := logrus.Fields{
+			"hash":  tx.Hash(),
+			"from":  msg.From,
+			"to":    tx.To(),
+			"nonce": tx.Nonce(),
+		}
+		if numblobs := len(tx.BlobHashes()); numblobs > 0 {
+			fields["blobs"] = numblobs
+		}
+		if len(tx.Data()) == 0 {
+			fields["value"] = tx.Value()
+			logrus.WithFields(fields).Debug("Sending TX to transfer ETH")
+		} else {
+			logrus.WithFields(fields).Debug("Sending TX to call contract")
+		}
+	}
 	data, err := tx.MarshalBinary()
 	if err != nil {
 		return err
@@ -59,7 +74,7 @@ func SendTransaction(rpcClient *rpc.Client, tx *types.Transaction) error {
 
 // SendRawTransaction sends a raw, signed tx using the provided client
 func SendRawTransaction(rpcClient *rpc.Client, raw []byte) error {
-	logrus.Debug("eth_sendRawTransaction: ", hexutil.Encode(raw))
+	logrus.Debugf("eth_sendRawTransaction: %x... (%d bytes)", raw[:min(10, len(raw))], len(raw))
 	return rpcClient.CallContext(context.Background(), nil, "eth_sendRawTransaction", hexutil.Encode(raw))
 }
 
